@@ -1,6 +1,7 @@
 import { CircleAlert, ExternalLink, Info } from 'lucide-react'
 import Link from 'next/link'
 
+import { duracao } from '@/components/admin/import-panels'
 import { SuggestionActions } from '@/components/admin/suggestion-actions'
 import { Badge } from '@/components/ui/badge'
 import type { SugestaoPendente } from '@/db/queries/suggestions'
@@ -97,11 +98,7 @@ export function ReviewPanel({
               </dd>
 
               <dt className="text-muted-foreground">Tempo</dt>
-              <dd>
-                {importacao.latencyMs
-                  ? `${(importacao.latencyMs / 1000).toFixed(1)}s`
-                  : '—'}
-              </dd>
+              <dd>{duracao(importacao.latencyMs)}</dd>
 
               {conferencia.confianca !== null ? (
                 <>

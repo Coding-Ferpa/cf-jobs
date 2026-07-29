@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { ImportRetry } from '@/components/admin/import-retry'
+import { duracao } from '@/components/admin/import-panels'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -246,7 +247,7 @@ export default async function ImportacoesPage({
                     </TableCell>
 
                     <TableCell className="text-caption text-right tabular-nums">
-                      {linha.latencyMs ? `${(linha.latencyMs / 1000).toFixed(1)}s` : '—'}
+                      {duracao(linha.latencyMs)}
                     </TableCell>
 
                     <TableCell className="text-caption whitespace-nowrap">

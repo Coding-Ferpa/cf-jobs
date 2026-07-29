@@ -18,6 +18,12 @@ export const urlDeVagaSchema = z
 
 export const iniciarImportacaoSchema = z.object({
   url: urlDeVagaSchema,
+  /**
+   * Confirmação do bloqueio suave (doc 05): com `AI_MONTHLY_TOKEN_BUDGET`
+   * estourado, importar exige um "sim" explícito em vez de ser proibido — o
+   * teto é um alerta de custo, não uma regra de negócio.
+   */
+  confirmarOrcamento: z.boolean().default(false),
 })
 
 export const processarImportacaoSchema = z.object({

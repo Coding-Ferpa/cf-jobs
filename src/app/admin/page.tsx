@@ -1,10 +1,14 @@
 import Link from 'next/link'
 
+import { PainelDeImportacoes, PainelDeOrcamento } from '@/components/admin/import-panels'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDashboardSummary, listRecentAudit } from '@/db/queries/admin'
+import { estatisticasDeImportacao } from '@/db/queries/import-stats'
+import { avaliarOrcamento } from '@/features/import/budget'
 import { getCurrentUser } from '@/lib/auth'
+import { serverEnv } from '@/lib/env'
 import { formatarDataRelativa } from '@/lib/format'
 import { hasRole } from '@/lib/roles'
 
@@ -21,6 +25,13 @@ const ROTULO_DA_ACAO: Record<string, string> = {
   'company.upsert': 'salvou a empresa',
   'taxonomy.upsert': 'salvou a taxonomia',
   'taxonomy.toggle_active': 'ativou ou desativou a taxonomia',
+  'taxonomy.approve': 'aprovou a sugestão',
+  'taxonomy.merge': 'mesclou a sugestão',
+  'taxonomy.reject': 'rejeitou a sugestão',
+  'import.start': 'abriu uma importação',
+  'import.review': 'importou a vaga',
+  'import.retry': 'repetiu a importação',
+  'import.cancel': 'cancelou a importação',
   'user.set_role': 'mudou o papel de alguém',
 }
 
@@ -58,10 +69,19 @@ export default async function AdminDashboardPage() {
   const usuario = await getCurrentUser()
   const podeCurar = usuario ? hasRole(usuario.role, 'editor') : false
 
-  const [resumo, auditoria] = await Promise.all([
+  const [resumo, auditoria, estatisticas] = await Promise.all([
     getDashboardSummary(),
     listRecentAudit(8),
+    estatisticasDeImportacao(),
   ])
+
+  // O teto é opcional (doc 05): sem ele o painel continua mostrando consumo e
+  // custo, e nada bloqueia.
+  const orcamento = avaliarOrcamento({
+    tokensIn: estatisticas.tokensInDoMes,
+    tokensOut: estatisticas.tokensOutDoMes,
+    teto: serverEnv().AI_MONTHLY_TOKEN_BUDGET ?? null,
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,6 +128,39 @@ export default async function AdminDashboardPage() {
           />
           <Indicador titulo="Vagas rejeitadas" valor={resumo.jobsRejected} />
         </div>
+      </section>
+
+      <section aria-labelledby="titulo-ia" className="flex flex-col gap-3">
+        <h2 className="text-caption font-semibold" id="titulo-ia">
+          Pipeline de IA
+        </h2>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <PainelDeOrcamento orcamento={orcamento} />
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="text-muted-foreground text-caption font-medium">
+                  Como ler estes números
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-caption text-muted-foreground flex flex-col gap-2">
+                <p>
+                  Falha por etapa diz onde investigar: <strong>busca</strong> costuma ser
+                  o site fora do ar ou vaga removida; <strong>extração</strong>, página
+                  que monta o conteúdo com JavaScript; <strong>classificação</strong>, a
+                  IA indisponível ou o limite das chaves.
+                </p>
+                <p>
+                  Falha na classificação é retomável: o conteúdo já buscado fica em cache
+                  por 24 horas, e &ldquo;Tentar novamente&rdquo; vai direto à IA.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <PainelDeImportacoes estatisticas={estatisticas} />
       </section>
 
       <section aria-labelledby="titulo-auditoria" className="flex flex-col gap-3">

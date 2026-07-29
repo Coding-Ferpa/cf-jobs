@@ -11,8 +11,10 @@ import { db } from '@/db/client'
 import { catalogoDoBanco } from '@/db/queries/taxonomy-catalog'
 import { repositorioDoPipeline } from '@/db/queries/import-pipeline'
 import { buscarImportacao, type StatusDaImportacao } from '@/db/queries/imports'
+import { tokensDoMes } from '@/db/queries/import-stats'
 import { listasParaOPrompt } from '@/db/queries/taxonomies'
 import { auditLogs, jobImports } from '@/db/schema'
+import { avaliarOrcamento } from '@/features/import/budget'
 import { ClienteNim } from '@/features/import/nim'
 import { executarPipeline } from '@/features/import/pipeline'
 import { jsonSchemaDaVaga } from '@/features/import/schema'
@@ -42,6 +44,24 @@ import { z } from '@/lib/zod'
  */
 
 const TAGS_DE_CACHE = ['jobs']
+
+/**
+ * Estado do teto mensal. Fica aqui, e não no `env`, porque depende do consumo
+ * já gravado — e o `AI_MONTHLY_TOKEN_BUDGET` pode simplesmente não existir.
+ */
+async function avaliarOrcamentoDoMes() {
+  const { entrada, saida } = await tokensDoMes()
+
+  let teto: number | null = null
+  try {
+    teto = requireAiEnv().monthlyTokenBudget
+  } catch {
+    // Sem chave configurada não há orçamento a avaliar; quem reclama disso é
+    // o `processarImportacao`, com a mensagem certa.
+  }
+
+  return avaliarOrcamento({ tokensIn: entrada, tokensOut: saida, teto })
+}
 
 type Sessao = Awaited<ReturnType<typeof getCurrentUser>>
 
@@ -90,6 +110,18 @@ export async function iniciarImportacao(
       'validation_error',
       'Confira o endereço da vaga.',
       z.flattenError(validada.error).fieldErrors as Record<string, string[]>,
+    )
+  }
+
+  // Bloqueio suave do orçamento (doc 05): só existe se o mantenedor definiu um
+  // teto, e mesmo aí é um "confirma?" — o tier gratuito não cobra por token, e
+  // travar de vez uma importação legítima seria pior que o gasto.
+  const orcamento = await avaliarOrcamentoDoMes()
+  if (orcamento.exigeConfirmacao && !validada.data.confirmarOrcamento) {
+    return actionError(
+      'budget_exceeded',
+      `O consumo do mês (${orcamento.tokensDoMes.toLocaleString('pt-BR')} tokens) ` +
+        `passou do teto configurado. Confirme para importar mesmo assim.`,
     )
   }
 

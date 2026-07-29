@@ -73,6 +73,9 @@ export function ImportWizard() {
   const [url, setUrl] = useState('')
   const [estado, setEstado] = useState<Estado>({ fase: 'formulario' })
   const [resultado, setResultado] = useState<ActionResult<unknown> | null>(null)
+  // Bloqueio suave do orçamento (doc 05): o servidor recusa uma vez e explica;
+  // o segundo envio vai com a confirmação.
+  const [confirmarOrcamento, setConfirmarOrcamento] = useState(false)
 
   // Sem o ref, um efeito que ainda está no ar depois de a tela mudar continuaria
   // marcando estado de uma importação que já acabou.
@@ -120,9 +123,10 @@ export function ImportWizard() {
     evento.preventDefault()
     setResultado(null)
 
-    const aberta = await iniciarImportacao({ url })
+    const aberta = await iniciarImportacao({ url, confirmarOrcamento })
     if (!aberta.ok) {
       setResultado(aberta)
+      if (aberta.error.code === 'budget_exceeded') setConfirmarOrcamento(true)
       return
     }
 
@@ -252,7 +256,9 @@ export function ImportWizard() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit">Importar</Button>
+        <Button type="submit">
+          {confirmarOrcamento ? 'Importar mesmo assim' : 'Importar'}
+        </Button>
         <Button asChild variant="ghost">
           <Link href="/admin/vagas/nova">Prefiro cadastrar à mão</Link>
         </Button>

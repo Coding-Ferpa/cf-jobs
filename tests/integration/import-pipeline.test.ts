@@ -178,6 +178,9 @@ describe('persistência da importação', () => {
     expect(importacao).toMatchObject({
       status: 'review',
       jobId,
+      // Também no import, e não só na vaga: a retomada pelo cache não passa
+      // pelo `guardarConteudo`, e o painel por adapter perderia essas linhas.
+      sourceSite: 'greenhouse',
       model: 'z-ai/glm-5.2',
       tokensIn: 6200,
       tokensOut: 950,

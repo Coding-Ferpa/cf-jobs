@@ -177,6 +177,10 @@ async function persistirNaTransacao(
     .set({
       status: 'review',
       jobId: id,
+      // Também aqui, e não só na vaga: quando a importação reaproveita o cache
+      // ela nunca passa pelo `guardarConteudo`, e o painel por adapter (doc 09)
+      // perderia justamente as retomadas.
+      sourceSite: dados.sourceSite,
       aiResponse: vaga,
       model: dados.uso.modelo,
       tokensIn: dados.uso.tokensIn,
