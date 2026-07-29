@@ -100,6 +100,18 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 - **Release Please** em vez de Changesets: projeto de app único (não monorepo de libs); Release Please automatiza changelog + versão a partir de Conventional Commits sem passo manual de "adicionar changeset", reduzindo fricção para contribuidores casuais.
 - **pnpm**: instalação rápida e determinística, padrão de facto em OSS moderno.
 
+### Majors seguradas de propósito
+
+Verificado no lote de manutenção de 2026-07-29. Cada linha tem um par do ecossistema que ainda não acompanha a major nova — subir exigiria override ou desligar proteção, e nenhum dos dois compensa. **Revisitar quando o bloqueio sair**, não antes.
+
+| Segurado em | Major disponível | O que trava |
+| --- | --- | --- |
+| ESLint 9 | 10 | `eslint-plugin-react` (peer `^9.7`) e `eslint-plugin-jsx-a11y` (peer `^9`) não declaram suporte ao 10 nas versões estáveis |
+| TypeScript 5.9 | 7 | `typescript-eslint` aborta com "does not support TS 7.0" — o lint inteiro para |
+| pnpm 10 | 11 | O 11 estreia a política `minimumReleaseAge`, que rejeita pacotes publicados nas últimas 24 h e recusa o lockfile atual. Adotar é decisão de postura de supply chain do mantenedor ([doc 07](07-seguranca.md), A06/A08), não efeito colateral de upgrade. O 11 também deixa de ler o campo `pnpm` do package.json — os overrides precisam migrar para `pnpm-workspace.yaml` junto |
+| jsdom 29 | 30 | O 30 exige `^22.22.2 \|\| ^24.15.0 \|\| >=26`, faixa que exclui Node 24.0–24.14; subir estreitaria o `engines` do projeto |
+| `@types/node` 22 | 26 | Alinhado ao runtime de propósito: CI e `engines` fixam **Node 22**, então os tipos ficam na série 22 (já na maior, 22.20.1). Subir tiparia APIs que o runtime não tem |
+
 ## Variáveis de ambiente (contrato)
 
 | Variável | Escopo | Descrição |
