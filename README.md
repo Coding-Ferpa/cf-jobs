@@ -14,10 +14,10 @@ Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 + shadcn/ui · Drizzle 
 
 ## Documentação
 
-| | |
-|---|---|
+|                                                                                                                                                       |                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Visão geral](docs/00-visao-geral.md) · [Stack](docs/01-stack.md) · [Arquitetura](docs/02-arquitetura.md) · [Design System](docs/03-design-system.md) | [Banco de dados](docs/04-banco-de-dados.md) · [Pipeline de IA](docs/05-pipeline-ia.md) · [APIs](docs/06-apis.md) · [Segurança](docs/07-seguranca.md) |
-| [Frontend & SEO](docs/08-frontend-seo.md) · [Analytics](docs/09-analytics-observabilidade.md) · [Escalabilidade](docs/10-escalabilidade.md) | [Open Source](docs/11-open-source.md) · [Qualidade](docs/12-qualidade.md) · [Roadmap](docs/13-roadmap.md) |
+| [Frontend & SEO](docs/08-frontend-seo.md) · [Analytics](docs/09-analytics-observabilidade.md) · [Escalabilidade](docs/10-escalabilidade.md)           | [Open Source](docs/11-open-source.md) · [Qualidade](docs/12-qualidade.md) · [Roadmap](docs/13-roadmap.md)                                            |
 
 ## Licença
 

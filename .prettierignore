@@ -1,0 +1,10 @@
+# A especificação de arquitetura é canônica: não reformatar (evita ruído em diffs).
+docs/
+
+.next/
+coverage/
+node_modules/
+out/
+playwright-report/
+test-results/
+pnpm-lock.yaml

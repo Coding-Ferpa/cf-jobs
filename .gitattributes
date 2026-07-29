@@ -1,0 +1,4 @@
+# Normaliza fim de linha para LF no repositório (contribuidores em Windows/macOS/Linux).
+* text=auto eol=lf
+
+pnpm-lock.yaml linguist-generated=true
