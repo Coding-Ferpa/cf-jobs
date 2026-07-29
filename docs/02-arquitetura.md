@@ -175,4 +175,5 @@ components/        →  lib/ (nunca importa db/ diretamente)
 | Idiomas | UI pt-BR; conteúdo da vaga preserva idioma original (`language` na vaga) |
 | Imagens OG | Geradas por rota `opengraph-image.tsx` (ImageResponse) com título, empresa, senioridade, modalidade e identidade visual da comunidade |
 | Erros | `error.tsx` por segmento; erros de import nunca derrubam a página — sempre capturados e gravados em `job_imports` |
+| Mensagens de validação | pt-BR em todo o app: `z.config(z.locales.pt())` global no bootstrap (Zod 4); mensagens manuais apenas onde precisarem ser mais específicas que o locale (decisão pós-M5) |
 | Feature flags | Não no MVP; fases futuras entram por PR normal |

@@ -14,7 +14,8 @@ A área pública (RSC) **não** consome a API REST — Server Components chamam 
 - Versionamento por path (`/api/v1/...`); quebras de contrato → `/api/v2`, v1 mantida por 6 meses (documentado no OpenAPI e no CHANGELOG).
 - Respostas JSON `snake_case`; datas ISO 8601 UTC.
 - Erros no formato **RFC 9457 Problem Details**: `{ "type", "title", "status", "detail", "instance" }`.
-- Paginação **cursor-based** (`cursor` opaco base64 de `(published_at, id)`), `limit` máx. 50, default 20. Sem `offset` (não escala, ver [doc 10](10-escalabilidade.md)).
+- Paginação **cursor-based** (`cursor` opaco base64 de `(published_at, id)`), `limit` máx. 50, default 20. `limit` acima do máximo responde `400` Problem Details — contrato explícito em vez de clamp silencioso (decisão do M5). Sem `offset` (não escala, ver [doc 10](10-escalabilidade.md)).
+- Parâmetros de lista aceitam CSV (`?tech=a,b`) e repetição (`?tech=a&tech=b`) como equivalentes. `total_estimate` satura em 1000. Valores monetários saem como número JSON (o `numeric` do Postgres chega como texto; a conversão acontece uma vez, na serialização).
 - Cache: respostas de listagem com `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`; detalhe de vaga `s-maxage=300`. CDN da Vercel absorve a carga.
 - CORS: `GET` liberado para qualquer origem (API pública de leitura); `POST /events` restrito ao próprio site.
 - Rate limit ([doc 07](07-seguranca.md)): 60 req/min/IP nas leituras, 20/min no `/events`. Headers `X-RateLimit-*` + `429` com `Retry-After`.
