@@ -42,7 +42,10 @@ export const companies = pgTable('companies', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
-export const jobs = pgTable('jobs', {
+// Fábrica em vez de objeto: os construtores de coluna do Drizzle têm estado, e
+// tabela e view precisam de instâncias próprias. É o que mantém a view
+// `active_jobs` espelhando jobs por inteiro, sem duplicar a lista de colunas.
+const jobColumns = () => ({
   id: uuid('id').primaryKey().defaultRandom(),
   slug: text('slug').notNull().unique(),
   title: text('title').notNull(),
@@ -98,6 +101,8 @@ export const jobs = pgTable('jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const jobs = pgTable('jobs', jobColumns())
+
 export const jobTechnologies = pgTable(
   'job_technologies',
   {
@@ -125,16 +130,8 @@ export const jobTags = pgTable(
   (table) => [primaryKey({ columns: [table.jobId, table.tagId] })],
 )
 
-/** View da migration 0007: apenas vagas publicadas. */
-export const activeJobs = pgView('active_jobs', {
-  id: uuid('id'),
-  slug: text('slug'),
-  title: text('title'),
-  companyId: uuid('company_id'),
-  status: jobStatus('status'),
-  publishedAt: timestamp('published_at', { withTimezone: true }),
-  expiresAt: timestamp('expires_at', { withTimezone: true }),
-}).existing()
+/** View da migration 0007: `select * from jobs where status = 'published'`. */
+export const activeJobs = pgView('active_jobs', jobColumns()).existing()
 
 export type Company = typeof companies.$inferSelect
 export type Job = typeof jobs.$inferSelect
