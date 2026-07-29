@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import {
-  consultarImportacao,
   iniciarImportacao,
   processarImportacao,
   repetirImportacao,
@@ -87,6 +86,12 @@ export function ImportWizard() {
     }
   }, [])
 
+  /**
+   * O acompanhamento é um `fetch` e não uma Server Action: o Next enfileira as
+   * actions de um mesmo cliente, e a de processar leva dezenas de segundos —
+   * uma action de leitura ficaria presa atrás dela e a barra nunca sairia de
+   * "Na fila". Medido em campo, com o banco já em `classifying`.
+   */
   async function acompanhar(importId: string) {
     const comecou = Date.now()
 
@@ -94,28 +99,34 @@ export function ImportWizard() {
       await new Promise((resolve) => setTimeout(resolve, INTERVALO_DE_POLLING_MS))
       if (!ativo.current) return
 
-      const resposta = await consultarImportacao(importId)
+      const resposta = await fetch(`/api/internal/imports/${importId}`, {
+        cache: 'no-store',
+      })
       if (!resposta.ok) continue
 
-      const status = resposta.data.status
+      const dados = (await resposta.json()) as {
+        status: string
+        jobId: string | null
+        errorStep: string | null
+        errorMessage: string | null
+      }
 
-      if (status === 'failed') {
+      if (dados.status === 'failed') {
         setEstado({
           fase: 'erro',
           importId,
-          etapa: resposta.data.errorStep,
-          mensagem: resposta.data.errorMessage ?? 'A importação falhou.',
+          etapa: dados.errorStep,
+          mensagem: dados.errorMessage ?? 'A importação falhou.',
         })
         return
       }
 
-      if (status === 'review' || status === 'completed') {
-        if (resposta.data.jobId)
-          router.push(`/admin/vagas/${resposta.data.jobId}/revisar`)
+      if (dados.status === 'review' || dados.status === 'completed') {
+        if (dados.jobId) router.push(`/admin/vagas/${dados.jobId}/revisar`)
         return
       }
 
-      setEstado({ fase: 'processando', importId, status })
+      setEstado({ fase: 'processando', importId, status: dados.status })
     }
   }
 

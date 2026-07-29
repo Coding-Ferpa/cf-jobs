@@ -6,6 +6,8 @@ import {
   ESPERA_MINIMA_MS,
   FalhaDaIa,
   ORCAMENTO_PARA_SEGUNDO_CICLO_MS,
+  RESERVA_PARA_O_RESTO_MS,
+  TIMEOUT_POR_CHAMADA_MS,
   type ConfigDoNim,
 } from './nim'
 
@@ -83,6 +85,57 @@ function cliente(config: Partial<ConfigDoNim> & { buscar: typeof fetch }) {
 }
 
 const MENSAGENS = [{ role: 'user' as const, content: 'oi' }]
+
+describe('orçamento de tempo dentro da cascata', () => {
+  /**
+   * Medido em campo com as chaves de verdade: uma passada pelos três modelos
+   * levou 115s, e o pipeline promete 55s. O teto por chamada precisa encolher
+   * junto com o que sobra, senão a promessa é só intenção.
+   */
+  it('encolhe o timeout da chamada com o orçamento restante', async () => {
+    const { buscar } = servidorFalso([respostaOk()])
+    let capturado: number | undefined
+
+    const original = AbortSignal.timeout.bind(AbortSignal)
+    const espiao = vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      capturado = ms
+      return original(ms)
+    })
+
+    const nim = cliente({ buscar, orcamentoRestanteMs: () => 20_000 })
+    await nim.gerar(MENSAGENS)
+    espiao.mockRestore()
+
+    // 20s de orçamento menos a reserva para mapear e gravar.
+    expect(capturado).toBe(20_000 - RESERVA_PARA_O_RESTO_MS)
+  })
+
+  it('mantém os 45s do doc quando não há orçamento declarado', async () => {
+    const { buscar } = servidorFalso([respostaOk()])
+    let capturado: number | undefined
+
+    const original = AbortSignal.timeout.bind(AbortSignal)
+    const espiao = vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      capturado = ms
+      return original(ms)
+    })
+
+    await cliente({ buscar }).gerar(MENSAGENS)
+    espiao.mockRestore()
+
+    expect(capturado).toBe(TIMEOUT_POR_CHAMADA_MS)
+  })
+
+  it('nem tenta o próximo modelo quando não sobra tempo de chamada', async () => {
+    const { buscar, chamadas } = servidorFalso([respostaOk()])
+    const nim = cliente({ buscar, orcamentoRestanteMs: () => 3_000 })
+
+    await expect(nim.gerar(MENSAGENS)).rejects.toMatchObject({
+      motivo: 'orcamento_de_tempo',
+    })
+    expect(chamadas).toHaveLength(0)
+  })
+})
 
 describe('mensagem de sistema', () => {
   /**

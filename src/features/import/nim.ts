@@ -25,6 +25,16 @@ export const ESPERA_MAXIMA_MS = 30_000
 /** Abaixo disto não há tempo para outro ciclo inteiro (doc 05). */
 export const ORCAMENTO_PARA_SEGUNDO_CICLO_MS = 35_000
 
+/**
+ * Reserva para o que vem depois da IA: mapear taxonomias e gravar a vaga.
+ * Sem ela, a última chamada consumiria o orçamento inteiro e o pipeline
+ * morreria com a resposta na mão.
+ */
+export const RESERVA_PARA_O_RESTO_MS = 6_000
+
+/** Chamada com menos tempo que isto não vale a ida — o modelo não responde. */
+export const MINIMO_POR_CHAMADA_MS = 5_000
+
 export type MotivoDeFalhaDaIa =
   | 'sem_chave'
   | 'limite_de_taxa'
@@ -126,6 +136,24 @@ export class ClienteNim {
     return { chave: this.config.apiKeys[indice]!, indice }
   }
 
+  /**
+   * Quanto tempo esta chamada pode tomar. Medido em campo: uma passada da
+   * cascata com os três modelos leva mais que os 55s do pipeline inteiro, e o
+   * teto fixo de 45s por chamada sozinho já não cabe no orçamento. Sem este
+   * corte a promessa de "falha retomável antes dos 55s" era só intenção.
+   */
+  private timeoutDaChamada(): number {
+    const restante = this.config.orcamentoRestanteMs?.() ?? Number.POSITIVE_INFINITY
+    if (!Number.isFinite(restante)) return TIMEOUT_POR_CHAMADA_MS
+
+    return Math.min(TIMEOUT_POR_CHAMADA_MS, restante - RESERVA_PARA_O_RESTO_MS)
+  }
+
+  /** `false` quando não sobra tempo nem para uma chamada mínima. */
+  private cabeOutraChamada(): boolean {
+    return this.timeoutDaChamada() >= MINIMO_POR_CHAMADA_MS
+  }
+
   private esperaComJitter(): number {
     const aleatorio = (this.config.aleatorio ?? Math.random)()
     return Math.round(
@@ -169,7 +197,7 @@ export class ClienteNim {
       // A cascata é nossa: o retry da SDK atrapalharia a contagem de tentativas
       // e giraria a chave sem passar por aqui.
       maxRetries: 0,
-      abortSignal: AbortSignal.timeout(TIMEOUT_POR_CHAMADA_MS),
+      abortSignal: AbortSignal.timeout(this.timeoutDaChamada()),
       // O provider OpenAI-compatible repassa `providerOptions[name]` para o
       // corpo da requisição — é por aí que o `nvext` do NIM chega.
       providerOptions: comGuidedJson
@@ -206,6 +234,8 @@ export class ClienteNim {
     let ultimoErro: unknown
 
     for (let tentativa = 0; tentativa < TENTATIVAS_POR_MODELO; tentativa += 1) {
+      if (!this.cabeOutraChamada()) break
+
       const quer = Boolean(this.config.jsonSchema) && this.suporte(modelo) !== false
 
       try {
@@ -271,6 +301,17 @@ export class ClienteNim {
 
     for (let ciclo = 0; ciclo < 2; ciclo += 1) {
       for (const modelo of this.config.models) {
+        // Conferido antes de cada modelo, e não só entre ciclos: uma passada
+        // pelos três já estoura o orçamento do pipeline sozinha.
+        if (!this.cabeOutraChamada()) {
+          throw new FalhaDaIa(
+            'orcamento_de_tempo',
+            'O tempo da importação acabou durante a classificação. ' +
+              'Use "Tentar novamente" — o conteúdo já buscado fica em cache.',
+            ultimaFalha?.modelo,
+          )
+        }
+
         try {
           return await this.tentarModelo(modelo, mensagens)
         } catch (erro) {

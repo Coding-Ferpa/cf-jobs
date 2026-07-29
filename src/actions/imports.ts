@@ -3,14 +3,12 @@
 import { updateTag } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
 
-import { eq } from 'drizzle-orm'
-
 import { autorizar } from '@/actions/authorize'
 import { actionError, actionOk, type ActionResult } from '@/actions/result'
 import { db } from '@/db/client'
 import { catalogoDoBanco } from '@/db/queries/taxonomy-catalog'
 import { repositorioDoPipeline } from '@/db/queries/import-pipeline'
-import { buscarImportacao, type StatusDaImportacao } from '@/db/queries/imports'
+import { buscarImportacao } from '@/db/queries/imports'
 import { tokensDoMes } from '@/db/queries/import-stats'
 import { listasParaOPrompt } from '@/db/queries/taxonomies'
 import { auditLogs, jobImports } from '@/db/schema'
@@ -312,52 +310,4 @@ export async function repetirImportacao(
   })
 
   return actionOk({ importId: criada.id })
-}
-
-/** Leitura do polling. Devolve só o que a barra de progresso mostra. */
-export async function consultarImportacao(
-  importId: string,
-): Promise<ActionResult<StatusDaImportacao>> {
-  const sessao = await exigirEditor()
-  if ('erro' in sessao) return sessao.erro
-
-  if (!z.uuid().safeParse(importId).success) {
-    return actionError('not_found', 'Importação não encontrada.')
-  }
-
-  const importacao = await buscarImportacao(importId)
-  if (!importacao) return actionError('not_found', 'Importação não encontrada.')
-
-  return actionOk(importacao)
-}
-
-/** Abandona uma importação travada — usada quando a função morre no meio. */
-export async function cancelarImportacao(
-  importId: string,
-): Promise<ActionResult<undefined>> {
-  const sessao = await exigirEditor()
-  if ('erro' in sessao) return sessao.erro
-
-  if (!z.uuid().safeParse(importId).success) {
-    return actionError('not_found', 'Importação não encontrada.')
-  }
-
-  await db
-    .update(jobImports)
-    .set({
-      status: 'failed',
-      errorStep: 'cancelled',
-      errorMessage: 'Importação cancelada por quem a iniciou.',
-      finishedAt: new Date(),
-    })
-    .where(eq(jobImports.id, importId))
-
-  await auditar({
-    actorId: sessao.usuario.id,
-    action: 'import.cancel',
-    entityId: importId,
-    diff: null,
-  })
-
-  return actionOk(undefined)
 }
