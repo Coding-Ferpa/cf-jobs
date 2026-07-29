@@ -12,7 +12,9 @@ Centraliza vagas em um único lugar com busca, filtros inteligentes e páginas o
 
 ## Status
 
-🚧 **Em construção.** A fundação do repositório está pronta: app, design system, testes e CI. O banco de dados, a área pública e o pipeline de importação vêm nos próximos milestones — o plano completo está no [doc 14](docs/14-prompt-de-execucao-opus-5.md).
+🚧 **Em construção.** Já funcionam: banco com RLS, área pública com busca e filtros, API v1 documentada, admin com CRUD e o **pipeline de importação por IA** — colar a URL, acompanhar o progresso, revisar e publicar. Faltam analytics completo (M7) e a ida para produção (M8); o plano está no [doc 14](docs/14-prompt-de-execucao-opus-5.md).
+
+A importação é opcional para quem contribui: sem `NVIDIA_API_KEY` o resto do projeto sobe normalmente, e o cadastro manual de vagas continua disponível.
 
 ## Stack
 
