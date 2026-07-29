@@ -142,6 +142,21 @@ test.describe('SEO', () => {
     expect(trilha.itemListElement).toHaveLength(3)
   })
 
+  // O Next transmite a metadata por padrão e, quando a página renderiza
+  // rápido, as tags saem depois do </head> — canonical no <body> é ignorado
+  // pelo rastreador. Ver docs/adr/0013.
+  for (const caminho of ['/', '/?tech=react', `/vagas/${VAGA_PUBLICADA}`]) {
+    test(`a metadata de ${caminho} vem dentro do <head>`, async ({ request }) => {
+      const html = await (await request.get(caminho)).text()
+      const head = html.slice(0, html.indexOf('</head>'))
+
+      expect(head).toContain('<title>')
+      expect(head).toContain('name="description"')
+      expect(head).toContain('rel="canonical"')
+      expect(head).toContain('property="og:title"')
+    })
+  }
+
   test('o sitemap inclui publicada e exclui arquivada', async ({ request }) => {
     const resposta = await request.get('/sitemap.xml')
     expect(resposta.status()).toBe(200)
