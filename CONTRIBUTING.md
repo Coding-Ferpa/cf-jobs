@@ -10,7 +10,7 @@ A arquitetura do projeto está decidida e documentada em [`docs/`](docs/README.m
 
 ## Setup (menos de 10 minutos)
 
-Você precisa de **Node 22+**, **pnpm**, **Git** e **Docker** rodando (o Supabase local sobe em contêineres).
+Você precisa de **Node 24+** (mínimo 24.15), **pnpm**, **Git** e **Docker** rodando (o Supabase local sobe em contêineres).
 
 ```bash
 git clone git@github.com:Coding-Ferpa/cf-jobs.git

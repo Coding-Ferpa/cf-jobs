@@ -6,7 +6,7 @@ body:
     id: contexto
     attributes:
       label: O que precisa ser feito
-      placeholder: 'A documentação do setup não menciona o Node 22 como requisito.'
+      placeholder: 'A documentação do setup não menciona o Node 24 como requisito.'
     validations:
       required: true
 

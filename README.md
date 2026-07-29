@@ -22,7 +22,7 @@ O porquê de cada escolha está em [docs/01 — Stack](docs/01-stack.md).
 
 ## Quickstart
 
-Requisitos: **Node 22+**, **pnpm**, **Git** e **Docker** (para o Supabase local).
+Requisitos: **Node 24+** (mínimo 24.15), **pnpm**, **Git** e **Docker** (para o Supabase local).
 
 ```bash
 git clone git@github.com:Coding-Ferpa/cf-jobs.git
