@@ -30,7 +30,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${poppins.variable} ${jetBrainsMono.variable}`}>
+    <html
+      className={`${poppins.variable} ${jetBrainsMono.variable}`}
+      lang="pt-BR"
+      suppressHydrationWarning
+    >
       <body>{children}</body>
     </html>
   )
