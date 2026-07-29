@@ -81,7 +81,7 @@ sequenceDiagram
 ```
 
 Decisões deste fluxo:
-- **Síncrono, não fila externa.** Uma importação leva 5–20s (fetch + LLM); cabe no `maxDuration: 60` de uma função Vercel (plano Hobby) com feedback de progresso por etapas gravadas em `job_imports`. Fila externa (QStash/Redis) só entra se surgir importação em lote (Fase 2, ver [doc 05](05-pipeline-ia.md#importação-em-lote)).
+- **Mesma invocação, resposta imediata (revisado pós-M6).** A medição real derrubou a premissa original de 5–20s: no tier gratuito do NIM a latência é de fila, imprevisível (28–129s medidos nas 4 importações reais). A action cria o `job_imports` e **dispara o pipeline em segundo plano na mesma invocação** (`after()`/`waitUntil`), retornando na hora; a UI acompanha por polling (GET dedicado — Server Actions do mesmo cliente são serializadas pelo Next). A rota de importação declara `maxDuration: 300` (Fluid compute, disponível no plano Hobby). Falha além do teto permanece retomável do cache ("Tentar novamente"). Continua **sem fila externa**; a fila em Postgres da Fase 2 (ver [doc 05](05-pipeline-ia.md#importação-em-lote)) segue reservada para lote.
 - **Tudo auditável.** Cada tentativa vira uma linha em `job_imports` com timing, tokens, modelo, erro — alimenta o dashboard de observabilidade sem ferramenta extra.
 - **Human-in-the-loop.** A vaga nasce `pending_review`; publicar é ação humana explícita no MVP.
 

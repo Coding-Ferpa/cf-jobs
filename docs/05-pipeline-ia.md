@@ -172,7 +172,7 @@ Retorne o JSON conforme o schema.
 
 ## Etapa 4 — Mapeamento de taxonomias
 
-Para cada slug retornado: lookup exato por `slug` → por `aliases` (GIN) → **fuzzy trigram** (`similarity(label, termo) > 0.85`) como rede de segurança para variações ("ReactJS" → react). Termos em `unmatched_terms` (e qualquer slug que ainda assim não resolver) viram `taxonomy_suggestions(status=pending)` — **a IA nunca cria taxonomia diretamente**.
+Para cada slug retornado: lookup exato por `slug` → por `aliases` (GIN) → **fuzzy trigram** (`similarity(label, termo) > 0.85`) como rede de segurança para erros de digitação e variações mínimas ("Kubernets" → kubernetes). Variações comuns de grafia ("ReactJS" → react, similarity 0,56 — abaixo do limiar de propósito) são responsabilidade dos `aliases` do seed, não do trigram (medido no M6). Termos em `unmatched_terms` (e qualquer slug que ainda assim não resolver) viram `taxonomy_suggestions(status=pending)` — **a IA nunca cria taxonomia diretamente**.
 
 **Fluxo de revisão humana de sugestões** (tela `admin/taxonomias/sugestoes`): moderador vê label sugerida + contexto + vaga de origem e escolhe: **Aprovar** (cria a taxonomia e vincula à vaga de origem), **Mesclar** (aponta para taxonomia existente e adiciona o termo aos `aliases` — o sistema aprende), **Rejeitar**. Tudo auditado.
 
@@ -191,7 +191,7 @@ Empresa: match por `lower(name)` → cria se nova (sem revisão: empresa é dado
 | Cascata inteira falhou (3 modelos) | **espera de 15–30s (jitter) e repete o ciclo uma única vez**, somente se o orçamento de tempo restante do pipeline comportar (≥ ~35s); senão grava `failed` retryable — "Tentar novamente" retoma do cache de conteúdo sem novo fetch |
 | JSON inválido / Zod falha | 1 retry de reparo (acima); depois `failed` no passo `classifying` |
 | Confiança < 0.5 | não falha: vaga criada com alerta de baixa confiança para revisão cuidadosa |
-| Orçamento de tempo total do pipeline | 55s (margem sob maxDuration 60s); estouro → `failed` com passo atual preservado — **re-execução retoma do cache** de `raw_content` |
+| Orçamento de tempo total do pipeline | derivado do teto da rota (`maxDuration: 300` com Fluid compute — revisado pós-M6, doc 02) com margem de ~10s; os timeouts por chamada encolhem conforme o orçamento restante; estouro → `failed` com passo atual preservado — **re-execução retoma do cache** de `raw_content` |
 
 Reprocessar: botão "Tentar novamente" no admin cria novo `job_imports` (attempt+1) reutilizando cache de conteúdo quando < 24h — não refaz fetch, vai direto à IA.
 
