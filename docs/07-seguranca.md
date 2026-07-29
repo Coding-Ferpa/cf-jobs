@@ -30,7 +30,8 @@ create policy jobs_select_public on jobs for select
   using (status in ('published','archived') or authorize('moderator'));
 create policy jobs_insert_editor on jobs for insert with check (authorize('editor'));
 create policy jobs_update_editor on jobs for update using (authorize('editor'));
-create policy jobs_delete_admin  on jobs for delete using (authorize('admin'));
+create policy jobs_delete_admin  on jobs for delete
+  using (authorize('admin') and status in ('draft','rejected')); -- coerente com a matriz de capacidades
 
 -- lookups (todas iguais)
 create policy lk_select_public on technologies for select
@@ -47,7 +48,9 @@ create policy ev_select_admin on job_events for select using (authorize('admin')
 -- profiles
 create policy pf_select_own on profiles for select using (id = auth.uid() or authorize('admin'));
 create policy pf_update_own on profiles for update
-  using (id = auth.uid()) with check (role = (select role from profiles where id = auth.uid()));
+  using (id = auth.uid())
+  with check (role::text = coalesce(auth.jwt()->>'user_role', 'reader'));
+  -- compara com o claim do JWT — subselect na própria tabela causaria recursão de policy.
   -- usuário edita display_name/avatar mas NUNCA o próprio role
 ```
 

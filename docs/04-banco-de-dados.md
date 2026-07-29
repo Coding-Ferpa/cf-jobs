@@ -115,7 +115,7 @@ Estrutura comum: `id` uuid PK · `slug` text unique · `label` text · `aliases`
 `id` uuid PK · `kind` text (`technology`, `tag`, `role_category`…) · `suggested_label` text · `normalized_slug` text · `context` text (trecho da vaga que originou) · `import_id` FK · `status` suggestion_status default `pending` · `resolved_taxonomy_id` uuid (quando aprovada ou mesclada a existente) · `reviewed_by` FK profiles · `created_at`/`reviewed_at`. Unique parcial em `(kind, normalized_slug) where status='pending'` — evita duplicar sugestão pendente.
 
 ### `job_events` (analytics first-party)
-`id` bigint identity PK · `job_id` uuid FK · `event_type` event_type · `occurred_at` timestamptz default now() · `referrer` text · `utm_source` text · `visitor_hash` text (sha256 de IP+UA+dia com salt — **anônimo, LGPD-friendly**, sem IP bruto). Sem FK para profiles: eventos são anônimos por design. Projetada para particionamento futuro por mês ([doc 10](10-escalabilidade.md)).
+`id` bigint identity PK · `job_id` uuid FK · `event_type` event_type · `occurred_at` timestamptz default now() · `occurred_on` date (materializada no insert — o dedup diário do doc 06 precisa do dia em índice e a conversão de fuso não é imutável) · `referrer` text · `utm_source` text · `visitor_hash` text (sha256 de IP+UA+dia com salt — **anônimo, LGPD-friendly**, sem IP bruto). Sem FK para profiles: eventos são anônimos por design. Projetada para particionamento futuro por mês ([doc 10](10-escalabilidade.md)).
 
 ### `job_stats_daily` (agregado)
 `job_id` uuid FK · `day` date · `views` int · `clicks` int · `shares` int · PK `(job_id, day)`. Populada pelo rollup noturno; alimenta dashboard e `views_count` da vaga.
