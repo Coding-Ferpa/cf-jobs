@@ -57,6 +57,15 @@ type Linha = {
 
 type Kind = EntradaDeTaxonomia['kind']
 
+/** O enum do banco é em inglês; a interface é em pt-BR (doc 03). */
+const ROTULO_DO_TIPO: Record<(typeof KINDS_DE_TECNOLOGIA)[number], string> = {
+  language: 'Linguagem',
+  framework: 'Framework',
+  database: 'Banco de dados',
+  cloud: 'Nuvem',
+  tool: 'Ferramenta',
+}
+
 export function TaxonomyManager({ kind, linhas }: { kind: Kind; linhas: Linha[] }) {
   const router = useRouter()
   const [resultado, setResultado] = useState<ActionResult<unknown> | null>(null)
@@ -159,7 +168,7 @@ export function TaxonomyManager({ kind, linhas }: { kind: Kind; linhas: Linha[] 
                       <SelectContent>
                         {KINDS_DE_TECNOLOGIA.map((tipo) => (
                           <SelectItem key={tipo} value={tipo}>
-                            {tipo}
+                            {ROTULO_DO_TIPO[tipo]}
                           </SelectItem>
                         ))}
                       </SelectContent>

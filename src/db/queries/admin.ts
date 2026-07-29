@@ -154,7 +154,12 @@ export type AdminJobDetail = {
   tagIds: string[]
 }
 
+/** `/admin/vagas/{qualquer-coisa}` chega aqui; UUID inválido é 404, não 500. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function getAdminJob(id: string): Promise<AdminJobDetail | null> {
+  if (!UUID.test(id)) return null
+
   const [vaga] = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1)
   if (!vaga) return null
 
