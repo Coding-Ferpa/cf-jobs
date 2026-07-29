@@ -7,11 +7,12 @@ import { USER_ROLES } from '@/lib/roles'
  * formulário e na Server Action.
  */
 
+/** `nullish` pelo mesmo motivo do schema de vaga: chave omitida é opcional. */
 const urlOpcional = z
   .string()
   .trim()
-  .transform((valor) => (valor.length > 0 ? valor : null))
-  .nullable()
+  .nullish()
+  .transform((valor) => (valor && valor.length > 0 ? valor : null))
   .refine((valor) => valor === null || z.url().safeParse(valor).success, {
     message: 'Informe uma URL válida, com https://.',
   })
@@ -24,8 +25,8 @@ export const empresaSchema = z.object({
   description: z
     .string()
     .trim()
-    .transform((valor) => (valor.length > 0 ? valor : null))
-    .nullable(),
+    .nullish()
+    .transform((valor) => (valor && valor.length > 0 ? valor : null)),
 })
 
 export const TIPOS_DE_TAXONOMIA = [

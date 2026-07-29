@@ -18,6 +18,10 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       // Cobertura é exigida onde mora a lógica (doc 12); UI e rotas são cobertas por E2E.
       include: ['src/features/**', 'src/lib/**'],
+      // Encanamento de sessão: são fábricas em volta de `@supabase/ssr` e
+      // `next/headers`, sem decisão própria — testá-las seria testar o mock.
+      // Quem cobre esse caminho é o E2E de autorização (spec 6 do doc 12).
+      exclude: ['src/lib/supabase/**', 'src/lib/auth.ts'],
       thresholds: {
         'src/features/**': { lines: 80, branches: 80 },
         'src/lib/**': { lines: 80, branches: 80 },

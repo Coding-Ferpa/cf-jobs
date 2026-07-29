@@ -68,7 +68,9 @@ function SelectDeTaxonomia({
   opcoes,
   placeholder,
 }: {
-  campo: { value: string | null; onChange: (valor: string | null) => void }
+  // O campo é opcional no schema, então o RHF entrega `undefined` antes de a
+  // pessoa escolher qualquer coisa.
+  campo: { value: string | null | undefined; onChange: (valor: string | null) => void }
   opcoes: Opcao[]
   placeholder: string
 }) {

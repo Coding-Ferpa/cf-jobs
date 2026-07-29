@@ -12,31 +12,32 @@ import { z } from 'zod'
 export const MOEDAS = ['BRL', 'USD', 'EUR'] as const
 export const PERIODOS_DE_SALARIO = ['hour', 'month', 'year'] as const
 
-/** Campo de texto opcional: o formulário manda `''`, o banco quer `null`. */
+/**
+ * Campo de texto opcional: o formulário manda `''`, o banco quer `null`, e
+ * quem chama por código (o pipeline do doc 05, a API) costuma simplesmente
+ * omitir a chave. `nullish` cobre os três — sem ele, "opcional" só valia para
+ * quem lembrasse de mandar a chave vazia.
+ */
 const textoOpcional = z
   .string()
   .trim()
-  .transform((valor) => (valor.length > 0 ? valor : null))
-  .nullable()
+  .nullish()
+  .transform((valor) => (valor && valor.length > 0 ? valor : null))
 
-const uuidOpcional = z
-  .string()
-  .trim()
-  .transform((valor) => (valor.length > 0 ? valor : null))
-  .nullable()
-  .refine((valor) => valor === null || z.uuid().safeParse(valor).success, {
-    message: 'Selecione uma opção válida.',
-  })
+const uuidOpcional = textoOpcional.refine(
+  (valor) => valor === null || z.uuid().safeParse(valor).success,
+  { message: 'Selecione uma opção válida.' },
+)
 
 /** Aceita "12000", "12.000,50" e "12000.50" — o admin digita como fala. */
 const dinheiroOpcional = z
   .union([z.string(), z.number()])
+  .nullish()
   .transform((valor) => {
-    const texto = String(valor).trim()
+    const texto = String(valor ?? '').trim()
     if (texto.length === 0) return null
     return texto.replace(/\./g, '').replace(',', '.')
   })
-  .nullable()
   .refine((valor) => valor === null || /^\d+(\.\d{1,2})?$/.test(valor), {
     message: 'Informe um valor numérico, como 12000 ou 12.000,50.',
   })
@@ -73,8 +74,8 @@ export const vagaSchema = z
       .string()
       .trim()
       .toUpperCase()
-      .transform((valor) => (valor.length > 0 ? valor : null))
-      .nullable()
+      .nullish()
+      .transform((valor) => (valor && valor.length > 0 ? valor : null))
       .refine((valor) => valor === null || /^[A-Z]{2}$/.test(valor), {
         message: 'Use a sigla de dois caracteres, como BR.',
       }),
