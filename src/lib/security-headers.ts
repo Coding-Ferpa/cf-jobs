@@ -26,8 +26,13 @@ export const staticSecurityHeaders: SecurityHeader[] = [
 ]
 
 export type ContentSecurityPolicyOptions = {
-  /** Nonce por requisição; o Next reaproveita para seus próprios scripts. */
-  nonce: string
+  /**
+   * Nonce por requisição, que o Next reaproveita nos scripts que injeta.
+   * Só existe em rotas renderizadas dinamicamente: em HTML pré-renderizado
+   * (SSG/ISR) o Next não tem como carimbar o nonce, e `strict-dynamic`
+   * bloquearia todo o JavaScript da página. Ver ADR-0012.
+   */
+  nonce?: string
   /** Em desenvolvimento o Next precisa de `unsafe-eval` (HMR/React Refresh). */
   isDev: boolean
   /** Origem do Supabase, liberada em `connect-src` para auth e queries. */
@@ -41,7 +46,9 @@ export function buildContentSecurityPolicy({
   isDev,
   supabaseUrl,
 }: ContentSecurityPolicyOptions): string {
-  const scriptSrc = [SELF, `'nonce-${nonce}'`, "'strict-dynamic'"]
+  const scriptSrc = nonce
+    ? [SELF, `'nonce-${nonce}'`, "'strict-dynamic'"]
+    : [SELF, "'unsafe-inline'"]
   if (isDev) scriptSrc.push("'unsafe-eval'")
 
   const connectSrc = [SELF]

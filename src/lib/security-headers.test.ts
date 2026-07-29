@@ -7,12 +7,28 @@ function directive(csp: string, name: string): string | undefined {
 }
 
 describe('buildContentSecurityPolicy', () => {
-  it('autoriza scripts apenas pelo nonce da requisição', () => {
+  it('autoriza scripts apenas pelo nonce quando a rota é dinâmica', () => {
     const csp = buildContentSecurityPolicy({ nonce: 'abc123', isDev: false })
 
     expect(directive(csp, 'script-src')).toBe(
       "script-src 'self' 'nonce-abc123' 'strict-dynamic'",
     )
+  })
+
+  it('sem nonce, permite os scripts inline do HTML pré-renderizado', () => {
+    const csp = buildContentSecurityPolicy({ isDev: false })
+
+    // `strict-dynamic` aqui bloquearia todo o JS da página (ADR-0012).
+    expect(directive(csp, 'script-src')).toBe("script-src 'self' 'unsafe-inline'")
+    expect(csp).not.toContain('strict-dynamic')
+  })
+
+  it('mantém as demais restrições mesmo sem nonce', () => {
+    const csp = buildContentSecurityPolicy({ isDev: false })
+
+    expect(directive(csp, 'frame-ancestors')).toBe("frame-ancestors 'none'")
+    expect(directive(csp, 'object-src')).toBe("object-src 'none'")
+    expect(directive(csp, 'default-src')).toBe("default-src 'self'")
   })
 
   it('bloqueia enquadramento, base-uri e objetos', () => {
