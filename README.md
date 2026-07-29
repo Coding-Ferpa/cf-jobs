@@ -22,17 +22,20 @@ O porquê de cada escolha está em [docs/01 — Stack](docs/01-stack.md).
 
 ## Quickstart
 
-Requisitos: **Node 22+**, **pnpm** e **Git**.
+Requisitos: **Node 22+**, **pnpm**, **Git** e **Docker** (para o Supabase local).
 
 ```bash
 git clone git@github.com:Coding-Ferpa/cf-jobs.git
 cd cf-jobs
 pnpm install
 cp .env.example .env
+pnpm db:start
 pnpm dev
 ```
 
-Abra <http://localhost:3000>. O banco local (Supabase) entra a partir do milestone M1; até lá o `.env` pode ficar sem valores.
+`pnpm db:start` sobe o Postgres local, aplica as migrations e carrega as taxonomias do seed; ele imprime a `DATABASE_URL` e as chaves para preencher o `.env`. Abra <http://localhost:3000>.
+
+Admin de desenvolvimento (existe apenas no seed local): `admin@cfjobs.local` / `cfjobs-local`.
 
 Bateria de qualidade:
 

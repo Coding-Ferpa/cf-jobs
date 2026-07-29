@@ -10,19 +10,20 @@ A arquitetura do projeto está decidida e documentada em [`docs/`](docs/README.m
 
 ## Setup (menos de 10 minutos)
 
-Você precisa de **Node 22+**, **pnpm** e **Git**.
+Você precisa de **Node 22+**, **pnpm**, **Git** e **Docker** rodando (o Supabase local sobe em contêineres).
 
 ```bash
 git clone git@github.com:Coding-Ferpa/cf-jobs.git
 cd cf-jobs
 pnpm install
 cp .env.example .env   # no Windows: copy .env.example .env
+pnpm db:start
 pnpm dev
 ```
 
-O app sobe em <http://localhost:3000>.
+O `pnpm db:start` imprime `DB_URL`, `API_URL` e as chaves do projeto local — use esses valores no `.env`. O app sobe em <http://localhost:3000>.
 
-> O banco local (Supabase) entra a partir do milestone M1; até lá o `.env` pode ficar sem valores.
+Para desenvolvimento existe um admin criado pelo seed: **admin@cfjobs.local** / **cfjobs-local**. Ele só existe no banco local, nunca em produção.
 
 ## Fluxo de trabalho
 
@@ -43,7 +44,11 @@ O app sobe em <http://localhost:3000>.
 | `pnpm test`          | Testes unitários (Vitest)                       |
 | `pnpm test:coverage` | Testes com cobertura e limites do doc 12        |
 | `pnpm test:e2e`      | Testes de ponta a ponta (Playwright)            |
+| `pnpm db:start`      | Sobe o Supabase local (`pnpm db:stop` derruba)  |
+| `pnpm db:reset`      | Recria o banco: migrations do zero + seed       |
+| `pnpm db:test`       | Policies e funções do banco (pgTAP)             |
 | `pnpm check:env`     | Confere se `.env.example` cobre o schema de env |
+| `pnpm check:schema`  | Confere se o schema Drizzle espelha o banco     |
 
 Antes de abrir o PR:
 
@@ -76,6 +81,22 @@ Testamos onde há lógica, não onde há framework ([doc 12](docs/12-qualidade.m
 - **Correção de bug de parsing**: adicione a fixture que reproduz o problema, veja o teste falhar, então corrija.
 - **Fluxos de usuário**: um spec E2E enxuto vale mais que dez testes de fachada.
 - Cobertura mínima de 80% (linhas e branches) em `src/features` e `src/lib`.
+
+## Mexendo no banco
+
+As migrations são SQL versionado em `supabase/migrations/`, numeradas em sequência. O schema Drizzle em `src/db/schema/` espelha esse SQL à mão — os dois andam no mesmo PR.
+
+Três regras que não abrem exceção:
+
+1. **Tabela nova nasce com RLS na mesma migration.** Nunca "depois": RLS esquecida é o pior bug que este projeto pode ter.
+2. **Policy sozinha não libera nada.** Cada tabela precisa também do `grant` correspondente para `anon`/`authenticated`, porque o app fala com o banco por essas roles.
+3. **Toda policy nova ganha teste pgTAP** em `supabase/tests/`, afirmando o que cada papel pode e o que não pode.
+
+Depois de mexer, rode:
+
+```bash
+pnpm db:reset && pnpm db:test && pnpm check:schema
+```
 
 ## Sua primeira contribuição
 

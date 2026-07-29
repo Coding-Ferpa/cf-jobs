@@ -12,8 +12,8 @@ concurrency:
 env:
   NODE_VERSION: '22'
 
-# Os jobs `db` (Supabase + pgTAP) e `lighthouse` entram junto com os milestones
-# que os tornam executáveis — M1 e M3 respectivamente (docs 11 e 12).
+# O job `lighthouse` entra no M3, quando existir área pública para medir
+# (docs 11 e 12).
 jobs:
   quality:
     name: Lint, tipos e formatação
@@ -73,6 +73,31 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:coverage
+
+  db:
+    name: Banco de dados
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Sobe o Supabase local
+        run: pnpm db:start
+      - name: Aplica as migrations do zero e o seed
+        run: pnpm db:reset
+      - name: Policies e funções (pgTAP)
+        run: pnpm db:test
+      - name: Schema Drizzle em sincronia com o banco
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm check:schema
+      - name: Derruba o Supabase
+        if: ${{ always() }}
+        run: pnpm db:stop
 
   e2e:
     name: Testes E2E
