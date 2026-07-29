@@ -73,6 +73,7 @@ Todas em `src/actions/`, todas com o mesmo esqueleto: sessão → Zod input → 
 
 | Action | Papel mínimo | Input (Zod) | Efeito |
 |---|---|---|---|
+| `criarVaga` | editor | payload completo da vaga (Zod) | criação manual (M4); mesma esteira de validação/auditoria |
 | `importJob` | editor | `{ url: string.url }` | roda pipeline do doc 05; retorna `import_id` |
 | `retryImport` | editor | `{ import_id }` | nova tentativa com cache |
 | `updateJob` | editor | `{ id, ...campos parciais }` | edita vaga; diff no audit |

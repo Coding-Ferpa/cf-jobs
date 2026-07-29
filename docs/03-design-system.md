@@ -61,6 +61,7 @@ Escala (herdada do site): display 3rem/1.1 (hero), h2 2.25rem/1.2, h3 1.5rem/1.3
 
 ### JobCard (peça central da homepage)
 - Container `card` com borda `border`, radius `--radius-md` (0.75rem), hover: borda `primary` + `shadow-glow` sutil + `translateY(-2px)` em 150ms — o glow violeta é o momento de marca.
+- **Altura uniforme (decisão de produto pós-M4):** o card preenche 100% da altura da célula do grid (`h-full`, flex column). Elementos de altura variável reservam espaço fixo: título sempre ocupa 2 linhas (min-height mesmo com 1), linha de chips reserva altura de 1 linha, e o rodapé (data + salário) ancora na base com margem automática — todos os cards da mesma linha ficam com altura e alinhamento idênticos.
 - Anatomia (topo → base): **empresa** (logo 32px ou avatar de iniciais + nome em `muted-foreground`) · **título da vaga** (h3, 2 linhas máx, ellipsis) · linha de metadados com ícones (📍 localização ou "Remoto", senioridade, tipo de contratação) · **chips de tecnologia** (máx 4 + "+N", JetBrains Mono 12px, fundo `surface`, radius full) · rodapé: data relativa ("há 3 dias") + faixa salarial quando existir (em `success`, destaque discreto).
 - Badge de status apenas quando não-padrão: "Encerra em 2 dias" (warning, quando `expires_at` < 3 dias), "Arquivada" (neutral).
 - Card inteiro é um link (`<a>` único envolvendo, sem links aninhados); alvo de toque ≥ 44px.
@@ -70,6 +71,7 @@ Escala (herdada do site): display 3rem/1.1 (hero), h2 2.25rem/1.2, h3 1.5rem/1.3
 - Ao clicar/tocar, expande um painel com os grupos colapsáveis (Tecnologia, Cargo, Senioridade, Modalidade, Contratação, Localização, Empresa, Tags, Status) e contagem por opção (facet counts). Desktop: popover largo ancorado abaixo do botão, alinhado à direita, em grid de 2–3 colunas. Mobile: painel de tela cheia (comportamento atual do M3).
 - Implementação preferencialmente sem JS obrigatório (padrão `<details>`/popover nativo, como o M3 já usa no mobile). Com JS: fecha com Esc e clique fora, `aria-expanded` no botão, foco vai ao painel ao abrir e retorna ao botão ao fechar.
 - **Chips dos filtros ativos permanecem sempre visíveis abaixo da barra de busca** (removíveis individualmente + "Limpar tudo"), mesmo com o painel fechado — o estado aplicado nunca fica escondido atrás do ícone.
+- Abaixo de 640px o rótulo "Filtros" fica apenas para leitor de tela (funil + badge permanecem visíveis) — preserva a largura da busca sem cortar o placeholder (achado do M3.1).
 - Busca textual: input hero no topo com ícone, placeholder "Busque por cargo, tecnologia ou empresa…", debounce 300ms, atualiza a URL.
 
 ### Página da vaga
