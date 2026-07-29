@@ -110,7 +110,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 | `SUPABASE_SERVICE_ROLE_KEY` | servidor | Somente Server Actions/admin |
 | `DATABASE_URL` | servidor | Pooler Supavisor (transaction mode) para Drizzle |
 | `DIRECT_URL` | servidor/CI | Conexão direta para migrations |
-| `NVIDIA_API_KEY` | servidor | build.nvidia.com |
+| `NVIDIA_API_KEY` | servidor | build.nvidia.com — **opcional no boot**: validada preguiçosamente pelo módulo de importação no ponto de uso (erro claro se ausente); o restante do app, inclusive login, sobe sem ela — contribuidor de UI não precisa de chave NVIDIA |
 | `AI_MODEL_PRIMARY` / `AI_MODEL_FALLBACK` | servidor | Ids dos modelos NIM (com defaults no código) |
 | `CRON_SECRET` | servidor | Protege endpoints acionados por cron externo (se usados) |
 
