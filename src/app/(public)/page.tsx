@@ -121,10 +121,10 @@ export default async function HomePage({
           // Sem a sidebar, a grade ganha a largura inteira do container.
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {lista.jobs.map((job) => (
-              <li className="flex" key={job.slug}>
-                <div className="flex w-full">
-                  <JobCard job={job} />
-                </div>
+              // O card se estica sozinho com `h-full`; a célula do grid não
+              // precisa de wrapper nenhum.
+              <li key={job.slug}>
+                <JobCard job={job} />
               </li>
             ))}
           </ul>

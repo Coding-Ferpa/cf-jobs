@@ -48,8 +48,11 @@ export function JobCard({ job }: { job: JobListItem }) {
 
   return (
     // O card inteiro é um link único: sem links aninhados, alvo de toque cheio.
+    // `h-full` preenche a célula do grid (doc 03): com as alturas reservadas
+    // abaixo, os cards de uma mesma linha ficam idênticos em altura e com os
+    // rodapés alinhados.
     <Link
-      className="border-border bg-card hover:border-primary hover:shadow-glow focus-visible:border-primary group flex flex-col gap-3 rounded-md border p-5 transition duration-150 hover:-translate-y-0.5"
+      className="border-border bg-card hover:border-primary hover:shadow-glow focus-visible:border-primary group flex h-full flex-col gap-3 rounded-md border p-5 transition duration-150 hover:-translate-y-0.5"
       href={`/vagas/${job.slug}`}
     >
       <div className="flex items-center gap-3">
@@ -72,29 +75,32 @@ export function JobCard({ job }: { job: JobListItem }) {
         ) : null}
       </div>
 
-      <h3 className="text-h3 line-clamp-2 font-semibold">{job.title}</h3>
+      {/* Duas linhas sempre: `line-clamp-2` corta o que passa, e `min-h-[2lh]`
+          segura o espaço quando o título cabe em uma só — sem isso o card de
+          título curto sobe tudo o que vem abaixo. */}
+      <h3 className="text-h3 line-clamp-2 min-h-[2lh] font-semibold">{job.title}</h3>
 
       {metadados.length > 0 ? (
         <p className="text-caption text-muted-foreground">{metadados.join(' · ')}</p>
       ) : null}
 
-      {chips.length > 0 ? (
-        <ul className="flex flex-wrap gap-2">
-          {chips.map((tecnologia) => (
-            <li
-              className="bg-surface text-muted-foreground rounded-full px-2.5 py-1 font-mono text-xs"
-              key={tecnologia.slug}
-            >
-              {tecnologia.label}
-            </li>
-          ))}
-          {restantes > 0 ? (
-            <li className="text-muted-foreground px-1 py-1 font-mono text-xs">
-              +{restantes}
-            </li>
-          ) : null}
-        </ul>
-      ) : null}
+      {/* A lista é renderizada mesmo vazia, com a altura de uma linha de chip
+          reservada: vaga sem tecnologia cadastrada não desalinha a vizinha. */}
+      <ul className="flex min-h-[1.75rem] flex-wrap gap-2">
+        {chips.map((tecnologia) => (
+          <li
+            className="bg-surface text-muted-foreground rounded-full px-2.5 py-1 font-mono text-xs"
+            key={tecnologia.slug}
+          >
+            {tecnologia.label}
+          </li>
+        ))}
+        {restantes > 0 ? (
+          <li className="text-muted-foreground px-1 py-1 font-mono text-xs">
+            +{restantes}
+          </li>
+        ) : null}
+      </ul>
 
       <div className="text-caption mt-auto flex items-center justify-between gap-3 pt-1">
         <span className="text-muted-foreground">

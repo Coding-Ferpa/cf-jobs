@@ -216,10 +216,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
           <h2 className="text-h3 font-semibold">Vagas semelhantes</h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {semelhantes.map((semelhante) => (
-              <li className="flex" key={semelhante.slug}>
-                <div className="flex w-full">
-                  <JobCard job={semelhante} />
-                </div>
+              <li key={semelhante.slug}>
+                <JobCard job={semelhante} />
               </li>
             ))}
           </ul>
