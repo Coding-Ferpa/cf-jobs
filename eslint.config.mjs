@@ -147,6 +147,10 @@ export default tseslint.config(
     },
   },
 
+  // Fronteiras do pipeline de importação. Este bloco vem depois do bloco geral
+  // que restringe `zod`, e no flat config o último que casa vence — por isso a
+  // regra de `zod` é repetida aqui: sem ela, `features/import` seria o único
+  // lugar do projeto onde dá para pegar o Zod sem o locale pt-BR.
   {
     files: ['src/features/import/**/*.ts'],
     rules: {
@@ -161,6 +165,22 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
+          paths: [
+            {
+              name: 'zod',
+              message:
+                "Importe `z` de '@/lib/zod' — é a instância com o locale pt-BR (ADR-0016).",
+            },
+            // Cliente HTTP próprio driblaria o `safeFetch` sem disparar a regra
+            // do global `fetch`.
+            ...['node:http', 'node:https', 'undici', 'axios', 'node-fetch'].map(
+              (nome) => ({
+                name: nome,
+                message:
+                  'Rede no pipeline de importação só pelo `safeFetch` de @/lib/safe-fetch (doc 07).',
+              }),
+            ),
+          ],
           patterns: [
             {
               group: ['next', 'next/*'],
