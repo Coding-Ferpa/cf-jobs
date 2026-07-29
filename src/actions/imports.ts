@@ -2,13 +2,14 @@
 
 import { updateTag } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
+import { after } from 'next/server'
 
 import { autorizar } from '@/actions/authorize'
 import { actionError, actionOk, type ActionResult } from '@/actions/result'
 import { db } from '@/db/client'
 import { catalogoDoBanco } from '@/db/queries/taxonomy-catalog'
 import { repositorioDoPipeline } from '@/db/queries/import-pipeline'
-import { buscarImportacao } from '@/db/queries/imports'
+import { buscarImportacao, buscarVagaPorHash } from '@/db/queries/imports'
 import { tokensDoMes } from '@/db/queries/import-stats'
 import { listasParaOPrompt } from '@/db/queries/taxonomies'
 import { auditLogs, jobImports } from '@/db/schema'
@@ -20,11 +21,8 @@ import { consumirLimite } from '@/db/queries/rate-limit'
 import { chaveDeLimite, LIMITE_DE_IMPORTACAO } from '@/lib/api/rate-limit'
 import { getCurrentUser } from '@/lib/auth'
 import { requireAiEnv } from '@/lib/env'
-import {
-  iniciarImportacaoSchema,
-  processarImportacaoSchema,
-  repetirImportacaoSchema,
-} from '@/lib/schemas/import'
+import { ORCAMENTO_DA_IMPORTACAO_MS } from '@/lib/import-runtime'
+import { iniciarImportacaoSchema, repetirImportacaoSchema } from '@/lib/schemas/import'
 import { hashDaUrl } from '@/lib/source-url'
 import { z } from '@/lib/zod'
 
@@ -36,9 +34,12 @@ import { z } from '@/lib/zod'
  * contrário — cada etapa precisa estar comitada e visível para o polling da
  * barra de progresso enquanto a função ainda roda.
  *
- * Por isso são duas actions em vez de uma: `iniciarImportacao` grava a fila e
- * devolve o id na hora, e `processarImportacao` faz o trabalho longo. Quem
- * chama tem o id para acompanhar antes de o processamento terminar.
+ * **O trabalho longo não é esperado pela resposta** (doc 02, revisado pós-M6):
+ * a action grava a fila, devolve o id e entrega o pipeline ao `after()`, que a
+ * plataforma mantém vivo na mesma invocação até o `maxDuration` da rota. Medido
+ * em campo: 28s a 129s por importação no tier gratuito do NIM — segurar a
+ * resposta por isso deixaria o formulário pendurado e, pior, bloquearia as
+ * outras Server Actions do mesmo cliente, que o Next serializa.
  */
 
 const TAGS_DE_CACHE = ['jobs']
@@ -55,7 +56,7 @@ async function avaliarOrcamentoDoMes() {
     teto = requireAiEnv().monthlyTokenBudget
   } catch {
     // Sem chave configurada não há orçamento a avaliar; quem reclama disso é
-    // o `processarImportacao`, com a mensagem certa.
+    // a própria `iniciarImportacao`, com a mensagem certa.
   }
 
   return avaliarOrcamento({ tokensIn: entrada, tokensOut: saida, teto })
@@ -90,11 +91,15 @@ async function auditar(entrada: {
   })
 }
 
-export type ImportacaoIniciada = { importId: string }
+export type ImportacaoDespachada = { estado: 'processando'; importId: string }
+
+export type ImportacaoIniciada =
+  ImportacaoDespachada | { estado: 'duplicada'; slug: string; title: string }
 
 /**
- * Cria a linha da fila e devolve o id. É a parte rápida: quem submeteu o
- * formulário precisa do id para começar a acompanhar o progresso.
+ * Cria a linha da fila, entrega o pipeline ao `after()` e devolve o id na hora.
+ * Quem submeteu o formulário precisa do id para começar a acompanhar o
+ * progresso — o resto acontece com a resposta já enviada.
  */
 export async function iniciarImportacao(
   entrada: z.input<typeof iniciarImportacaoSchema>,
@@ -109,6 +114,26 @@ export async function iniciarImportacao(
       'Confira o endereço da vaga.',
       z.flattenError(validada.error).fieldErrors as Record<string, string[]>,
     )
+  }
+
+  // Configuração faltando é problema de quem opera, não do formulário — e é
+  // melhor dizer isso agora do que gravar uma tentativa que já nasce condenada.
+  try {
+    requireAiEnv()
+  } catch (erro) {
+    return actionError('ai_failed', (erro as Error).message)
+  }
+
+  // O dedup do doc 05 não depende de buscar nada: é o hash da URL canônica
+  // contra `jobs.source_url_hash`. Feito aqui, a resposta já sai com o link da
+  // vaga existente em vez de abrir uma tentativa para descobrir o óbvio.
+  const jaCadastrada = await buscarVagaPorHash(hashDaUrl(validada.data.url))
+  if (jaCadastrada) {
+    return actionOk({
+      estado: 'duplicada' as const,
+      slug: jaCadastrada.slug,
+      title: jaCadastrada.title,
+    })
   }
 
   // Bloqueio suave do orçamento (doc 05): só existe se o mantenedor definiu um
@@ -159,7 +184,13 @@ export async function iniciarImportacao(
       diff: { url: validada.data.url },
     })
 
-    return actionOk({ importId: criada.id })
+    despachar({
+      importId: criada.id,
+      url: validada.data.url,
+      criadoPor: sessao.usuario.id,
+    })
+
+    return actionOk({ estado: 'processando' as const, importId: criada.id })
   } catch (erro) {
     unstable_rethrow(erro)
     console.error('[action:import.start]', erro)
@@ -167,96 +198,76 @@ export async function iniciarImportacao(
   }
 }
 
-export type ImportacaoConcluida =
-  | {
-      estado: 'review'
-      jobId: string
-      slug: string
-      avisos: string[]
-      baixaConfianca: boolean
-    }
-  | { estado: 'duplicada'; slug: string; title: string }
-
 /**
- * A parte longa: busca, extrai, classifica, mapeia e persiste. Roda até 55s e
- * grava cada etapa em `job_imports` enquanto anda.
+ * Entrega o pipeline ao `after()`: ele roda com a resposta já enviada, na mesma
+ * invocação, até o `maxDuration` da rota (doc 02).
+ *
+ * Nada é devolvido a quem chamou porque não há mais ninguém esperando — o
+ * resultado, inclusive a falha, mora em `job_imports`, que é de onde a barra de
+ * progresso lê. Um erro aqui que não chegasse ao banco deixaria a tela girando
+ * para sempre; por isso o `catch` grava antes de logar.
  */
-export async function processarImportacao(
-  entrada: z.input<typeof processarImportacaoSchema>,
-): Promise<ActionResult<ImportacaoConcluida>> {
-  const sessao = await exigirEditor()
-  if ('erro' in sessao) return sessao.erro
+function despachar(entrada: { importId: string; url: string; criadoPor: string }): void {
+  after(async () => {
+    const repositorio = repositorioDoPipeline()
 
-  const validada = processarImportacaoSchema.safeParse(entrada)
-  if (!validada.success) return actionError('not_found', 'Importação não encontrada.')
+    let ai: ReturnType<typeof requireAiEnv>
+    try {
+      ai = requireAiEnv()
+    } catch (erro) {
+      // A mensagem do `requireAiEnv` diz exatamente o que configurar; trocá-la
+      // por um "algo deu errado" genérico esconderia a única pista útil.
+      await repositorio.falhar(entrada.importId, {
+        etapa: 'classifying',
+        mensagem: (erro as Error).message,
+        latenciaMs: 0,
+      })
+      return
+    }
 
-  const importacao = await buscarImportacao(validada.data.importId)
-  if (!importacao) return actionError('not_found', 'Importação não encontrada.')
+    try {
+      const jsonSchema = jsonSchemaDaVaga()
 
-  let ai: ReturnType<typeof requireAiEnv>
-  try {
-    ai = requireAiEnv()
-  } catch (erro) {
-    // Configuração faltando é problema de quem opera, não do formulário: a
-    // mensagem do `requireAiEnv` diz exatamente o que fazer.
-    return actionError('ai_failed', (erro as Error).message)
-  }
+      const resultado = await executarPipeline(entrada, {
+        repositorio,
+        catalogo: catalogoDoBanco(),
+        listas: await listasParaOPrompt(),
+        orcamentoMs: ORCAMENTO_DA_IMPORTACAO_MS,
+        criarCliente: (orcamentoRestanteMs) =>
+          new ClienteNim({
+            apiKeys: ai.apiKeys,
+            models: ai.models,
+            jsonSchema,
+            orcamentoRestanteMs,
+            ...(ai.baseURL ? { baseURL: ai.baseURL } : {}),
+          }),
+      })
 
-  const jsonSchema = jsonSchemaDaVaga()
+      if (resultado.estado !== 'review') return
 
-  const resultado = await executarPipeline(
-    {
-      importId: importacao.id,
-      url: importacao.url,
-      criadoPor: sessao.usuario.id,
-    },
-    {
-      repositorio: repositorioDoPipeline(),
-      catalogo: catalogoDoBanco(),
-      listas: await listasParaOPrompt(),
-      criarCliente: (orcamentoRestanteMs) =>
-        new ClienteNim({
-          apiKeys: ai.apiKeys,
-          models: ai.models,
-          jsonSchema,
-          orcamentoRestanteMs,
-          ...(ai.baseURL ? { baseURL: ai.baseURL } : {}),
-        }),
-    },
-  )
+      await auditar({
+        actorId: entrada.criadoPor,
+        action: 'import.review',
+        entityId: entrada.importId,
+        diff: { jobId: resultado.jobId, slug: resultado.slug, avisos: resultado.avisos },
+      })
 
-  if (resultado.estado === 'failed') {
-    return actionError(
-      resultado.etapa === 'classifying' ? 'ai_failed' : 'fetch_failed',
-      resultado.mensagem,
-    )
-  }
+      // A vaga nasce `pending_review` e não aparece na área pública, mas o
+      // admin lista por status — e é essa listagem que precisa vê-la agora.
+      for (const tag of TAGS_DE_CACHE) updateTag(tag)
+    } catch (erro) {
+      console.error('[import] falha fora do pipeline', erro)
 
-  if (resultado.estado === 'duplicada') {
-    return actionOk({
-      estado: 'duplicada' as const,
-      slug: resultado.vaga.slug,
-      title: resultado.vaga.title,
-    })
-  }
-
-  await auditar({
-    actorId: sessao.usuario.id,
-    action: 'import.review',
-    entityId: importacao.id,
-    diff: { jobId: resultado.jobId, slug: resultado.slug, avisos: resultado.avisos },
-  })
-
-  // A vaga nasce `pending_review` e não aparece na área pública, mas o admin
-  // lista por status — e é essa listagem que precisa vê-la agora.
-  for (const tag of TAGS_DE_CACHE) updateTag(tag)
-
-  return actionOk({
-    estado: 'review' as const,
-    jobId: resultado.jobId,
-    slug: resultado.slug,
-    avisos: resultado.avisos,
-    baixaConfianca: resultado.baixaConfianca,
+      await repositorio
+        .falhar(entrada.importId, {
+          etapa: 'persisting',
+          mensagem: 'Algo deu errado ao importar. Tente de novo em instantes.',
+          latenciaMs: 0,
+        })
+        .catch((aoGravar) => {
+          console.error('[import] falha ao gravar o erro da importação', aoGravar)
+        })
+    }
   })
 }
 
@@ -267,7 +278,7 @@ export async function processarImportacao(
  */
 export async function repetirImportacao(
   entrada: z.input<typeof repetirImportacaoSchema>,
-): Promise<ActionResult<ImportacaoIniciada>> {
+): Promise<ActionResult<ImportacaoDespachada>> {
   const sessao = await exigirEditor()
   if ('erro' in sessao) return sessao.erro
 
@@ -309,5 +320,11 @@ export async function repetirImportacao(
     diff: { de: anterior.id, attempt: anterior.attempt + 1 },
   })
 
-  return actionOk({ importId: criada.id })
+  despachar({
+    importId: criada.id,
+    url: anterior.url,
+    criadoPor: sessao.usuario.id,
+  })
+
+  return actionOk({ estado: 'processando' as const, importId: criada.id })
 }

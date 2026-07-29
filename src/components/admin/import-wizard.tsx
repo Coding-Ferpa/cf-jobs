@@ -5,34 +5,35 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
-import {
-  iniciarImportacao,
-  processarImportacao,
-  repetirImportacao,
-} from '@/actions/imports'
+import { iniciarImportacao, repetirImportacao } from '@/actions/imports'
 import type { ActionResult } from '@/actions/result'
 import { ActionFeedback } from '@/components/admin/action-feedback'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/cn'
+import { MAX_DURATION_DA_IMPORTACAO } from '@/lib/import-runtime'
 
 /**
  * Importação por URL com barra de progresso (doc 08).
  *
- * O desenho segue o que o pipeline permite: `iniciarImportacao` devolve o id na
- * hora, e só então o processamento longo começa. Com o id em mãos, esta tela
- * pergunta o estado a cada segundo e meio — o pipeline grava cada etapa fora de
- * transação justamente para que essa leitura veja o avanço.
+ * A action devolve o id na hora e o pipeline segue em segundo plano, na mesma
+ * invocação (doc 02). Com o id em mãos, esta tela pergunta o estado a cada
+ * segundo e meio — o pipeline grava cada etapa fora de transação justamente
+ * para que essa leitura veja o avanço.
  *
- * Sem o par de actions, a pessoa olharia para um botão girando por 20 segundos
- * sem saber se travou no fetch ou se a IA está pensando.
+ * Nada aqui espera o processamento terminar: a importação medida leva de 28s a
+ * mais de dois minutos, e é o banco que conta como ela terminou.
  */
 
 const INTERVALO_DE_POLLING_MS = 1_500
 
-/** Se nem o polling nem o processamento respondem, algo morreu no servidor. */
-const LIMITE_DE_ESPERA_MS = 90_000
+/**
+ * Além do teto da própria função não há mais o que esperar: ou a plataforma já
+ * encerrou o processamento, ou ele gravou o desfecho. A folga cobre o atraso
+ * entre o fim do pipeline e o próximo polling.
+ */
+const LIMITE_DE_ESPERA_MS = (MAX_DURATION_DA_IMPORTACAO + 15) * 1_000
 
 type Etapa = { chave: string; rotulo: string; detalhe: string }
 
@@ -88,9 +89,10 @@ export function ImportWizard() {
 
   /**
    * O acompanhamento é um `fetch` e não uma Server Action: o Next enfileira as
-   * actions de um mesmo cliente, e a de processar leva dezenas de segundos —
-   * uma action de leitura ficaria presa atrás dela e a barra nunca sairia de
-   * "Na fila". Medido em campo, com o banco já em `classifying`.
+   * actions de um mesmo cliente, e o processamento ocupa a invocação por
+   * dezenas de segundos — uma action de leitura ficaria presa atrás dele e a
+   * barra nunca sairia de "Na fila". Medido em campo, com o banco já em
+   * `classifying`.
    */
   async function acompanhar(importId: string) {
     const comecou = Date.now()
@@ -128,6 +130,17 @@ export function ImportWizard() {
 
       setEstado({ fase: 'processando', importId, status: dados.status })
     }
+
+    if (!ativo.current) return
+
+    // Passou do teto da função sem desfecho no banco: a invocação morreu antes
+    // de gravar. Repetir aproveita o cache do conteúdo já buscado.
+    setEstado({
+      fase: 'erro',
+      importId,
+      etapa: null,
+      mensagem: 'A importação passou do tempo limite sem terminar.',
+    })
   }
 
   async function importar(evento: React.FormEvent) {
@@ -141,40 +154,20 @@ export function ImportWizard() {
       return
     }
 
-    const { importId } = aberta.data
-    setEstado({ fase: 'processando', importId, status: 'queued' })
-
-    // O polling sobe antes do processamento porque o segundo só responde no
-    // fim: as duas promessas correm juntas, e quem chegar primeiro decide.
-    const acompanhamento = acompanhar(importId)
-    const processada = await processarImportacao({ importId })
-
-    if (!ativo.current) return
-
-    if (!processada.ok) {
-      setEstado({
-        fase: 'erro',
-        importId,
-        etapa: null,
-        mensagem: processada.error.message,
-      })
-      return
-    }
-
-    if (processada.data.estado === 'duplicada') {
+    if (aberta.data.estado === 'duplicada') {
       setResultado({
         ok: false,
         error: {
           code: 'duplicate_job',
-          message: `Essa vaga já está cadastrada: ${processada.data.title}.`,
+          message: `Essa vaga já está cadastrada: ${aberta.data.title}.`,
         },
       })
-      setEstado({ fase: 'formulario' })
       return
     }
 
-    await acompanhamento
-    router.push(`/admin/vagas/${processada.data.jobId}/revisar`)
+    const { importId } = aberta.data
+    setEstado({ fase: 'processando', importId, status: 'queued' })
+    await acompanhar(importId)
   }
 
   async function tentarDeNovo(importId: string) {
@@ -185,25 +178,7 @@ export function ImportWizard() {
     }
 
     setEstado({ fase: 'processando', importId: nova.data.importId, status: 'queued' })
-    const acompanhamento = acompanhar(nova.data.importId)
-    const processada = await processarImportacao({ importId: nova.data.importId })
-
-    if (!ativo.current) return
-
-    if (!processada.ok) {
-      setEstado({
-        fase: 'erro',
-        importId: nova.data.importId,
-        etapa: null,
-        mensagem: processada.error.message,
-      })
-      return
-    }
-
-    await acompanhamento
-    if (processada.data.estado === 'review') {
-      router.push(`/admin/vagas/${processada.data.jobId}/revisar`)
-    }
+    await acompanhar(nova.data.importId)
   }
 
   if (estado.fase === 'processando') {
@@ -332,7 +307,9 @@ function Progresso({ status }: { status: string }) {
       </ol>
 
       <p className="text-muted-foreground text-caption">
-        Costuma levar de 5 a 20 segundos. Pode deixar a aba aberta.
+        Costuma levar de 30 segundos a 2 minutos — a espera é da fila da IA, não do
+        tamanho da vaga. O processamento é do servidor: fechar a aba não o cancela, e o
+        resultado aparece no log de importações.
       </p>
     </div>
   )

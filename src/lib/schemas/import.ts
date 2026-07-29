@@ -26,10 +26,6 @@ export const iniciarImportacaoSchema = z.object({
   confirmarOrcamento: z.boolean().default(false),
 })
 
-export const processarImportacaoSchema = z.object({
-  importId: z.uuid(),
-})
-
 /** "Tentar novamente": novo `job_imports` com attempt+1, reusando o cache. */
 export const repetirImportacaoSchema = z.object({
   importId: z.uuid(),
