@@ -22,6 +22,12 @@ export const serverEnvSchema = z.object({
   AI_MODEL_PRIMARY: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
   AI_MODEL_FALLBACK: z.string().min(1).default('mistralai/mistral-small-24b-instruct'),
   CRON_SECRET: z.string().min(16),
+
+  // Opcionais: sem elas o login com GitHub simplesmente não é oferecido. Os
+  // nomes são os que a CLI do Supabase lê em config.toml, então o mesmo par de
+  // variáveis configura o provider local e a detecção do recurso no app.
+  SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: z.string().min(1).optional(),
+  SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET: z.string().min(1).optional(),
 })
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>
@@ -63,6 +69,15 @@ let cachedServerEnv: ServerEnv | undefined
 export function clientEnv(): ClientEnv {
   cachedClientEnv ??= parseClientEnv(rawClientEnv)
   return cachedClientEnv
+}
+
+/**
+ * O login com GitHub só aparece quando há credenciais configuradas — em
+ * desenvolvimento a validação é por e-mail e senha, e o OAuth App é criado na
+ * ida para produção (M8).
+ */
+export function isGithubOAuthEnabled(): boolean {
+  return Boolean(serverEnv().SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)
 }
 
 /** Variáveis de servidor, incluindo segredos. Nunca chamar em código de cliente. */
