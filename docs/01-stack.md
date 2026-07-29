@@ -23,7 +23,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 | Testes | **Vitest + Testing Library + Playwright** | Jest, Cypress |
 | Lint/format | **ESLint 9 (flat) + Prettier** | Biome |
 | Pacotes | **pnpm** | npm, yarn, bun |
-| Node | **22 LTS** | — |
+| Node | **24 LTS (mínimo: último patch da série, ≥ 24.15)** | 22 LTS foi a baseline original, elevada por decisão do mantenedor pós-M4.1 (Vercel já tem 24.x como padrão de builds/functions; LTS ativo até abr/2028); 26 fica para quando virar LTS |
 | Releases | **Release Please + Conventional Commits** | Changesets |
 | Licença | **MIT** | AGPL, Apache-2.0 |
 
@@ -110,7 +110,7 @@ Verificado no lote de manutenção de 2026-07-29. Cada linha tem um par do ecoss
 | TypeScript 5.9 | 7 | `typescript-eslint` aborta com "does not support TS 7.0" — o lint inteiro para |
 | pnpm 10 | 11 | O 11 estreia a política `minimumReleaseAge`, que rejeita pacotes publicados nas últimas 24 h e recusa o lockfile atual. Adotar é decisão de postura de supply chain do mantenedor ([doc 07](07-seguranca.md), A06/A08), não efeito colateral de upgrade. O 11 também deixa de ler o campo `pnpm` do package.json — os overrides precisam migrar para `pnpm-workspace.yaml` junto |
 | jsdom 29 | 30 | O 30 exige `^22.22.2 \|\| ^24.15.0 \|\| >=26`, faixa que exclui Node 24.0–24.14; subir estreitaria o `engines` do projeto |
-| `@types/node` 22 | 26 | Alinhado ao runtime de propósito: CI e `engines` fixam **Node 22**, então os tipos ficam na série 22 (já na maior, 22.20.1). Subir tiparia APIs que o runtime não tem |
+| `@types/node` 22 | 26 | Alinhado ao runtime de propósito: com a baseline elevada a **Node 24** (pós-M4.1), os tipos vão para a maior versão da **série 24** — não 26, que tiparia APIs que o runtime não tem |
 
 ## Variáveis de ambiente (contrato)
 
