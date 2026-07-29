@@ -18,8 +18,10 @@ import { plantarConteudoNoCache } from './support/cache-de-importacao'
 
 const EDITOR = { email: 'editor@cfjobs.local', senha: 'cfjobs-local' }
 
-// A importação é uma action longa (o pipeline se dá 55s antes de desistir):
-// o padrão de 30s do Playwright derrubaria o teste antes do produto.
+// A importação roda em segundo plano e a tela acompanha por polling (doc 02):
+// o padrão de 30s do Playwright derrubaria o teste antes do produto. Com o
+// dublê do NIM o pipeline inteiro leva poucos segundos, mas o teto do produto
+// é bem maior — a folga aqui é para o teste não virar o gargalo.
 test.setTimeout(120_000)
 
 /**
@@ -73,7 +75,7 @@ test.describe('importação por URL', () => {
     await entrar(page)
     await importar(page, primeira)
 
-    // Progresso enquanto a action longa roda.
+    // A action já respondeu; o progresso vem do polling sobre `job_imports`.
     await expect(page.getByTestId('import-progresso')).toBeVisible()
 
     // Termina na tela de revisão, com os campos já preenchidos.
@@ -127,11 +129,34 @@ test.describe('importação por URL', () => {
     ).toBeVisible()
   })
 
-  test('mesclar sugestão vira alias da taxonomia escolhida', async ({ page }) => {
+  /**
+   * A promessa do doc 02 depois do M6.1: a action responde na hora e o pipeline
+   * segue na mesma invocação. Se ela fosse falsa — se o trabalho dependesse da
+   * aba aberta —, sair da tela mataria a importação e a linha ficaria parada.
+   *
+   * A vaga desta spec é a que a próxima usa: são duas importações para as
+   * quatro specs, e não quatro, por causa do teto de 5 por minuto.
+   */
+  test('o processamento continua depois de sair da tela', async ({ page }) => {
     await entrar(page)
     await importar(page, segunda)
-    await expect(page).toHaveURL(/\/revisar$/, { timeout: 60_000 })
+    await expect(page.getByTestId('import-progresso')).toBeVisible()
 
+    await page.goto('/admin/importacoes')
+
+    // O log mostra o título como link só depois de a vaga existir — antes
+    // disso a linha é a URL crua. Procurar pelo link é o que separa "terminou"
+    // de "está na fila", inclusive da linha que plantou o cache com a mesma URL.
+    await expect(async () => {
+      await page.reload()
+      await expect(
+        page.getByRole('link', { name: new RegExp(`CFJOBS-E2E-${segunda}`) }),
+      ).toBeVisible({ timeout: 1_000 })
+    }).toPass({ timeout: 60_000, intervals: [2_000] })
+  })
+
+  test('mesclar sugestão vira alias da taxonomia escolhida', async ({ page }) => {
+    await entrar(page)
     await page.goto('/admin/taxonomias/sugestoes')
 
     const sugestao = page
