@@ -35,7 +35,7 @@ export default function HomePage() {
       </article>
 
       <a
-        className="bg-primary hover:shadow-glow rounded-full px-12 py-2.5 font-semibold text-white transition duration-150"
+        className="bg-primary-solid hover:shadow-glow rounded-full px-12 py-2.5 font-semibold text-white transition duration-150"
         href="https://github.com/Coding-Ferpa/cf-jobs"
         rel="noopener"
         target="_blank"

@@ -13,6 +13,9 @@
   --surface: #1e1e1e;
   --border: #262626;
   --primary: #8b5cf6;
+  /* Fundo de controles preenchidos com texto branco: 5,7:1 (AA). O acento
+     #8b5cf6 rende apenas ~4,2:1 e nunca é fundo de texto normal (doc 03). */
+  --primary-solid: #7c3aed;
   --primary-muted: #c4b5fd;
   --foreground: #f5f5f5;
   --muted-foreground: #a3a3a3;
@@ -33,6 +36,7 @@
   --surface: #f4f4f5;
   --border: #e4e4e7;
   --primary: #7c3aed;
+  --primary-solid: #7c3aed;
   --primary-muted: #a78bfa;
   --foreground: #18181b;
   --muted-foreground: #52525b;
@@ -48,6 +52,7 @@
   --color-surface: var(--surface);
   --color-border: var(--border);
   --color-primary: var(--primary);
+  --color-primary-solid: var(--primary-solid);
   --color-primary-muted: var(--primary-muted);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
