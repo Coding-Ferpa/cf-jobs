@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+ * O tema é escolhido por `data-theme`, não por `prefers-color-scheme` (doc 03).
+ * Sem redefinir a variante, todo `dark:` que vem nos componentes do shadcn/ui
+ * dispararia pela preferência do sistema — o oposto do tema em uso.
+ */
+@custom-variant dark ([data-theme='dark'] &);
+
+/*
  * Tokens do design system (doc 03). O tema escuro é o padrão — é a identidade
  * da comunidade. O tema claro já existe como sobrescrita por `data-theme`;
  * o alternador e a persistência em cookie chegam no M3.
@@ -26,6 +33,29 @@
 
   --container-max: 96rem;
   --header-height: 4.5rem;
+}
+
+/*
+ * Apelidos que o shadcn/ui espera encontrar (admin, doc 02). São só ponteiros
+ * para os tokens do doc 03 — nenhuma cor nova entra por aqui, que é a regra 2
+ * do design system. Ficam fora do bloco acima de propósito: quem edita a
+ * paleta mexe nos tokens, não nestes apelidos.
+ */
+:root,
+[data-theme='light'] {
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  /* Preenchidos usam `primary-solid` com texto branco (doc 03). */
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface);
+  --accent: var(--surface);
+  --accent-foreground: var(--foreground);
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 [data-theme='light'] {
@@ -63,6 +93,20 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
+
+  /* Apelidos do shadcn/ui (ver bloco de tokens acima). */
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import { sair } from '@/actions/auth'
+import { AdminNav } from '@/components/admin/admin-nav'
+import { Button } from '@/components/ui/button'
 import { requireRole } from '@/lib/auth'
 import { MIN_ADMIN_ROLE } from '@/lib/roles'
 
@@ -28,7 +30,10 @@ export default async function AdminLayout({
   const usuario = await requireRole(MIN_ADMIN_ROLE)
 
   return (
-    <div className="min-h-dvh">
+    // Densidade maior que a área pública, com radius menor (doc 03). O
+    // `--radius-md` local reduz o raio de tudo que usa `rounded-md` aqui
+    // dentro — inclusive dos componentes do shadcn/ui — sem tocar em cada um.
+    <div className="min-h-dvh [--radius-md:0.5rem]">
       <header className="border-border bg-card border-b">
         <div className="mx-auto flex h-[var(--header-height)] w-full max-w-[var(--container-max)] items-center justify-between gap-4 px-6">
           <Link className="font-semibold" href="/admin">
@@ -44,20 +49,26 @@ export default async function AdminLayout({
             </span>
 
             <form action={sair}>
-              <button
-                className="text-caption border-border hover:border-primary-muted rounded-full border px-4 py-1.5 transition duration-150"
-                type="submit"
-              >
+              <Button size="sm" type="submit" variant="outline">
                 Sair
-              </button>
+              </Button>
             </form>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[var(--container-max)] px-6 py-10">
-        {children}
-      </main>
+      <div className="mx-auto flex w-full max-w-[var(--container-max)] flex-col gap-6 px-6 py-8 lg:flex-row lg:gap-8">
+        {/* Coluna fixa no desktop; abaixo de lg a mesma navegação vira uma
+            faixa rolável acima do conteúdo — são cinco itens, não vale um
+            drawer. */}
+        <aside className="border-border border-b pb-4 lg:w-[200px] lg:shrink-0 lg:border-b-0 lg:pb-0">
+          <div className="lg:sticky lg:top-8">
+            <AdminNav papel={usuario.role} />
+          </div>
+        </aside>
+
+        <main className="flex min-w-0 flex-1 flex-col gap-6">{children}</main>
+      </div>
     </div>
   )
 }

@@ -82,6 +82,27 @@ export default tseslint.config(
       ],
     },
   },
+  // O shadcn/ui (e o Radix junto) é do admin, onde a interatividade justifica o
+  // bundle. A área pública roda com HTML nativo e precisa continuar assim para
+  // caber no orçamento de JS do doc 12.
+  {
+    files: ['src/app/(public)/**/*.tsx', 'src/components/jobs/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/components/ui/*', 'radix-ui', 'radix-ui/*', 'lucide-react'],
+              message:
+                'shadcn/ui e Radix ficam no admin (doc 02): a área pública usa HTML nativo para respeitar o orçamento de JS do doc 12.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   {
     files: ['src/features/import/**/*.ts'],
     rules: {
