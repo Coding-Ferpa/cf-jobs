@@ -100,6 +100,11 @@ export async function entrarComGithub(): Promise<void> {
 
 export async function sair(): Promise<never> {
   const supabase = await createSupabaseServerClient()
-  await supabase.auth.signOut()
+
+  // `local` e não o escopo padrão `global`: sair aqui encerra esta sessão, não
+  // todas as da pessoa. Com o padrão, fechar a sessão no computador da
+  // curadoria derrubava junto o celular — e, nos testes em paralelo, derrubava
+  // as outras sessões do mesmo usuário no meio do caminho.
+  await supabase.auth.signOut({ scope: 'local' })
   redirect('/')
 }
