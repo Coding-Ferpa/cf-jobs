@@ -43,12 +43,6 @@ export class FalhaDoAdapter extends Error {
   }
 }
 
-/** Último segmento não vazio do caminho — o id da vaga em todos os ATSs. */
-export function ultimoSegmento(url: URL): string | null {
-  const partes = url.pathname.split('/').filter(Boolean)
-  return partes.at(-1) ?? null
-}
-
 export function segmentos(url: URL): string[] {
   return url.pathname.split('/').filter(Boolean)
 }

@@ -11,3 +11,7 @@ pnpm-lock.yaml
 
 # Bundle da UI Scalar, copiado no build por scripts/copy-scalar.ts.
 public/scalar/
+
+# Fixtures reproduzem respostas reais, inclusive as malformadas: formatá-las
+# conserta justamente o defeito que o teste precisa reproduzir.
+src/features/import/__fixtures__/

@@ -39,8 +39,8 @@ describe('parseServerEnv', () => {
   it('aplica os modelos NIM padrão quando não informados', () => {
     const env = parseServerEnv(validServerEnv)
 
-    expect(env.AI_MODEL_PRIMARY).toBe('meta/llama-3.3-70b-instruct')
-    expect(env.AI_MODEL_FALLBACK).toBe('mistralai/mistral-small-24b-instruct')
+    expect(env.AI_MODEL_PRIMARY).toBe('z-ai/glm-5.2')
+    expect(env.AI_MODEL_FALLBACK).toBe('minimaxai/minimax-m3')
   })
 
   it('preserva os modelos informados por env', () => {
@@ -62,8 +62,8 @@ describe('parseServerEnv', () => {
       SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: '',
     })
 
-    expect(env.AI_MODEL_PRIMARY).toBe('meta/llama-3.3-70b-instruct')
-    expect(env.AI_MODEL_FALLBACK).toBe('mistralai/mistral-small-24b-instruct')
+    expect(env.AI_MODEL_PRIMARY).toBe('z-ai/glm-5.2')
+    expect(env.AI_MODEL_FALLBACK).toBe('minimaxai/minimax-m3')
     expect(env.SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID).toBeUndefined()
   })
 
@@ -97,16 +97,56 @@ describe('parseServerEnv', () => {
 })
 
 describe('resolveAiEnv', () => {
-  it('entrega chave e modelos quando a chave existe', () => {
+  it('entrega a cascata de modelos e a chave quando ela existe', () => {
     const ai = resolveAiEnv(
       parseServerEnv({ ...validServerEnv, NVIDIA_API_KEY: 'nvapi-teste' }),
     )
 
     expect(ai).toEqual({
-      apiKey: 'nvapi-teste',
-      primaryModel: 'meta/llama-3.3-70b-instruct',
-      fallbackModel: 'mistralai/mistral-small-24b-instruct',
+      apiKeys: ['nvapi-teste'],
+      models: ['z-ai/glm-5.2', 'moonshotai/kimi-k2.6', 'minimaxai/minimax-m3'],
+      monthlyTokenBudget: null,
     })
+  })
+
+  it('coloca as duas chaves no rodízio quando a segunda existe', () => {
+    const ai = resolveAiEnv(
+      parseServerEnv({
+        ...validServerEnv,
+        NVIDIA_API_KEY: 'nvapi-um',
+        NVIDIA_API_KEY_FALLBACK: 'nvapi-dois',
+      }),
+    )
+
+    expect(ai.apiKeys).toEqual(['nvapi-um', 'nvapi-dois'])
+  })
+
+  it('não duplica no rodízio uma chave repetida — gastaria a mesma conta duas vezes', () => {
+    const ai = resolveAiEnv(
+      parseServerEnv({
+        ...validServerEnv,
+        NVIDIA_API_KEY: 'igual',
+        NVIDIA_API_KEY_FALLBACK: 'igual',
+      }),
+    )
+
+    expect(ai.apiKeys).toEqual(['igual'])
+  })
+
+  it('só ativa o orçamento de tokens quando a variável existe', () => {
+    const semTeto = resolveAiEnv(
+      parseServerEnv({ ...validServerEnv, NVIDIA_API_KEY: 'x' }),
+    )
+    const comTeto = resolveAiEnv(
+      parseServerEnv({
+        ...validServerEnv,
+        NVIDIA_API_KEY: 'x',
+        AI_MONTHLY_TOKEN_BUDGET: '500000',
+      }),
+    )
+
+    expect(semTeto.monthlyTokenBudget).toBeNull()
+    expect(comTeto.monthlyTokenBudget).toBe(500_000)
   })
 
   it('falha citando a variável e o caminho da correção', () => {

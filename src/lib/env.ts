@@ -18,12 +18,24 @@ export const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
   DIRECT_URL: z.string().min(1),
-  // Opcional no boot (doc 01): quem contribui com UI ou banco não precisa de
+  // Opcionais no boot (doc 01): quem contribui com UI ou banco não precisa de
   // chave da NVIDIA para rodar o projeto. Quem valida é `requireAiEnv()`, no
   // ponto de uso.
+  //
+  // São duas chaves porque elas se revezam a cada chamada (doc 05): cada conta
+  // gratuita tem 40 req/min, e alternar dobra a folga sem custo. A segunda é
+  // opcional — com uma só, a rotação simplesmente não acontece.
   NVIDIA_API_KEY: z.string().min(1).optional(),
-  AI_MODEL_PRIMARY: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
-  AI_MODEL_FALLBACK: z.string().min(1).default('mistralai/mistral-small-24b-instruct'),
+  NVIDIA_API_KEY_FALLBACK: z.string().min(1).optional(),
+
+  // Cascata de modelos, tentados nesta ordem (doc 05).
+  AI_MODEL_PRIMARY: z.string().min(1).default('z-ai/glm-5.2'),
+  AI_MODEL_SECONDARY: z.string().min(1).default('moonshotai/kimi-k2.6'),
+  AI_MODEL_FALLBACK: z.string().min(1).default('minimaxai/minimax-m3'),
+
+  // Sem esta variável o painel de tokens continua existindo, só não há
+  // bloqueio suave (doc 05): o tier gratuito confirmado já dá folga.
+  AI_MONTHLY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),
   CRON_SECRET: z.string().min(16),
 
   // Sal do visitor_hash (doc 07). Opcional no boot pelo mesmo motivo da chave
@@ -96,9 +108,11 @@ export function clientEnv(): ClientEnv {
 }
 
 export type AiEnv = {
-  apiKey: string
-  primaryModel: string
-  fallbackModel: string
+  /** Uma ou duas, na ordem de rodízio (doc 05). */
+  apiKeys: string[]
+  /** Cascata de modelos, na ordem de tentativa. */
+  models: [string, string, string]
+  monthlyTokenBudget: number | null
 }
 
 export function resolveAiEnv(env: ServerEnv): AiEnv {
@@ -111,9 +125,14 @@ export function resolveAiEnv(env: ServerEnv): AiEnv {
   }
 
   return {
-    apiKey: env.NVIDIA_API_KEY,
-    primaryModel: env.AI_MODEL_PRIMARY,
-    fallbackModel: env.AI_MODEL_FALLBACK,
+    // A segunda chave só entra se existir e for diferente: repetir a mesma no
+    // rodízio consumiria o dobro do limite de uma conta só.
+    apiKeys:
+      env.NVIDIA_API_KEY_FALLBACK && env.NVIDIA_API_KEY_FALLBACK !== env.NVIDIA_API_KEY
+        ? [env.NVIDIA_API_KEY, env.NVIDIA_API_KEY_FALLBACK]
+        : [env.NVIDIA_API_KEY],
+    models: [env.AI_MODEL_PRIMARY, env.AI_MODEL_SECONDARY, env.AI_MODEL_FALLBACK],
+    monthlyTokenBudget: env.AI_MONTHLY_TOKEN_BUDGET ?? null,
   }
 }
 

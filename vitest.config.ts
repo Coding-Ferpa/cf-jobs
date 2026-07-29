@@ -21,7 +21,12 @@ export default defineConfig({
       // Encanamento de sessão: são fábricas em volta de `@supabase/ssr` e
       // `next/headers`, sem decisão própria — testá-las seria testar o mock.
       // Quem cobre esse caminho é o E2E de autorização (spec 6 do doc 12).
-      exclude: ['src/lib/supabase/**', 'src/lib/auth.ts'],
+      exclude: [
+        'src/lib/supabase/**',
+        'src/lib/auth.ts',
+        // Fixtures são dados, não código: o v8 tenta instrumentá-las e reclama.
+        'src/features/**/__fixtures__/**',
+      ],
       thresholds: {
         'src/features/**': { lines: 80, branches: 80 },
         'src/lib/**': { lines: 80, branches: 80 },

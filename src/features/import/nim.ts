@@ -1,0 +1,292 @@
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { APICallError, generateText, type JSONValue } from 'ai'
+
+/**
+ * Cliente do NVIDIA NIM (doc 05, etapa 3).
+ *
+ * Três coisas moram aqui, e nenhuma delas cabe na SDK:
+ *
+ * 1. **Rodízio de chaves.** Cada conta gratuita tem 40 req/min; alternar as
+ *    duas a cada chamada dobra a folga. Em `429`/`401` a chamada seguinte já
+ *    sai pela outra — que é o comportamento que o doc 05 pede.
+ * 2. **Cascata de modelos.** Primário → secundário → terciário, com a
+ *    tentativa registrada para o painel.
+ * 3. **`guided_json` verificado empiricamente.** O suporte varia por modelo e
+ *    não há como consultar: manda-se uma vez, e a resposta ensina. A flag fica
+ *    em memória do processo — errar para "tem suporte" custa uma repetição,
+ *    errar para "não tem" custa qualidade em toda chamada seguinte.
+ */
+
+export const ENDPOINT = 'https://integrate.api.nvidia.com/v1'
+export const TIMEOUT_POR_CHAMADA_MS = 45_000
+export const TENTATIVAS_POR_MODELO = 2
+export const ESPERA_MINIMA_MS = 15_000
+export const ESPERA_MAXIMA_MS = 30_000
+/** Abaixo disto não há tempo para outro ciclo inteiro (doc 05). */
+export const ORCAMENTO_PARA_SEGUNDO_CICLO_MS = 35_000
+
+export type MotivoDeFalhaDaIa =
+  | 'sem_chave'
+  | 'limite_de_taxa'
+  | 'nao_autorizado'
+  | 'timeout'
+  | 'erro_do_provedor'
+  | 'cascata_esgotada'
+  | 'orcamento_de_tempo'
+
+export class FalhaDaIa extends Error {
+  constructor(
+    readonly motivo: MotivoDeFalhaDaIa,
+    message: string,
+    readonly modelo?: string,
+  ) {
+    super(message)
+    this.name = 'FalhaDaIa'
+  }
+}
+
+export type Mensagem = { role: 'system' | 'user' | 'assistant'; content: string }
+
+export type ResultadoDaChamada = {
+  texto: string
+  modelo: string
+  /** Posição da chave no rodízio — vai para o log, nunca a chave em si. */
+  chave: number
+  tokensIn: number
+  tokensOut: number
+  guidedJson: boolean
+  tentativas: number
+  latenciaMs: number
+}
+
+export type ConfigDoNim = {
+  apiKeys: string[]
+  models: [string, string, string]
+  /** JSON Schema do `nvext.guided_json`; ausente desliga o recurso. */
+  jsonSchema?: Record<string, unknown>
+  baseURL?: string
+  /** Injetado nos testes; em produção é o `fetch` da plataforma. */
+  buscar?: typeof fetch
+  dormir?: (ms: number) => Promise<void>
+  agora?: () => number
+  aleatorio?: () => number
+  /** Quanto sobra do orçamento do pipeline; decide se cabe um segundo ciclo. */
+  orcamentoRestanteMs?: () => number
+}
+
+function dormirDeVerdade(ms: number): Promise<void> {
+  return new Promise((resolver) => setTimeout(resolver, ms))
+}
+
+/**
+ * Erro de `guided_json` não suportado. O NIM devolve 400 com a reclamação no
+ * corpo; a mensagem varia por modelo, então o reconhecimento é por palavra e
+ * não por texto exato.
+ */
+export function pareceSemSuporteAGuidedJson(erro: unknown): boolean {
+  if (!APICallError.isInstance(erro) || erro.statusCode !== 400) return false
+
+  const corpo = `${erro.responseBody ?? ''} ${erro.message}`.toLowerCase()
+  return (
+    corpo.includes('nvext') ||
+    corpo.includes('guided_json') ||
+    corpo.includes('guided decoding')
+  )
+}
+
+function statusDe(erro: unknown): number | undefined {
+  return APICallError.isInstance(erro) ? erro.statusCode : undefined
+}
+
+function ehTimeout(erro: unknown): boolean {
+  return (
+    erro instanceof Error && (erro.name === 'AbortError' || erro.name === 'TimeoutError')
+  )
+}
+
+export class ClienteNim {
+  /** Posição do rodízio; avança a cada chamada, com ou sem erro. */
+  private proximaChave = 0
+  private readonly suporteAGuidedJson = new Map<string, boolean>()
+
+  constructor(private readonly config: ConfigDoNim) {
+    if (config.apiKeys.length === 0) {
+      throw new FalhaDaIa('sem_chave', 'Nenhuma chave da NVIDIA configurada.')
+    }
+  }
+
+  /** `undefined` = ainda não testado neste processo. */
+  suporte(modelo: string): boolean | undefined {
+    return this.suporteAGuidedJson.get(modelo)
+  }
+
+  private girarChave(): { chave: string; indice: number } {
+    const indice = this.proximaChave % this.config.apiKeys.length
+    this.proximaChave += 1
+    return { chave: this.config.apiKeys[indice]!, indice }
+  }
+
+  private esperaComJitter(): number {
+    const aleatorio = (this.config.aleatorio ?? Math.random)()
+    return Math.round(
+      ESPERA_MINIMA_MS + aleatorio * (ESPERA_MAXIMA_MS - ESPERA_MINIMA_MS),
+    )
+  }
+
+  private async chamar(
+    modelo: string,
+    mensagens: Mensagem[],
+    comGuidedJson: boolean,
+  ): Promise<{ resultado: ResultadoDaChamada; indice: number }> {
+    const { chave, indice } = this.girarChave()
+    const agora = this.config.agora ?? Date.now
+    const inicio = agora()
+
+    const provedor = createOpenAICompatible({
+      name: 'nvidia',
+      baseURL: this.config.baseURL ?? ENDPOINT,
+      apiKey: chave,
+      ...(this.config.buscar ? { fetch: this.config.buscar } : {}),
+    })
+
+    const resposta = await generateText({
+      model: provedor.chatModel(modelo),
+      messages: mensagens,
+      temperature: 0.1,
+      maxOutputTokens: 2048,
+      // A cascata é nossa: o retry da SDK atrapalharia a contagem de tentativas
+      // e giraria a chave sem passar por aqui.
+      maxRetries: 0,
+      abortSignal: AbortSignal.timeout(TIMEOUT_POR_CHAMADA_MS),
+      // O provider OpenAI-compatible repassa `providerOptions[name]` para o
+      // corpo da requisição — é por aí que o `nvext` do NIM chega.
+      providerOptions: comGuidedJson
+        ? { nvidia: { nvext: { guided_json: this.config.jsonSchema as JSONValue } } }
+        : {},
+    })
+
+    return {
+      indice,
+      resultado: {
+        texto: resposta.text,
+        modelo,
+        chave: indice,
+        tokensIn: resposta.usage?.inputTokens ?? 0,
+        tokensOut: resposta.usage?.outputTokens ?? 0,
+        guidedJson: comGuidedJson,
+        tentativas: 1,
+        latenciaMs: agora() - inicio,
+      },
+    }
+  }
+
+  /**
+   * Uma passada por um modelo, com as tentativas que o doc 05 permite:
+   * `429`/`5xx` repetem (a chave já girou), timeout desiste e deixa a cascata
+   * seguir para o próximo modelo.
+   */
+  private async tentarModelo(
+    modelo: string,
+    mensagens: Mensagem[],
+  ): Promise<ResultadoDaChamada> {
+    const dormir = this.config.dormir ?? dormirDeVerdade
+    let tentativas = 0
+    let ultimoErro: unknown
+
+    for (let tentativa = 0; tentativa < TENTATIVAS_POR_MODELO; tentativa += 1) {
+      const quer = Boolean(this.config.jsonSchema) && this.suporte(modelo) !== false
+
+      try {
+        tentativas += 1
+        const { resultado } = await this.chamar(modelo, mensagens, quer)
+        if (quer) this.suporteAGuidedJson.set(modelo, true)
+        return { ...resultado, tentativas }
+      } catch (erro) {
+        ultimoErro = erro
+
+        // Descoberta do suporte: anota e repete já sem `nvext`, sem gastar
+        // uma das tentativas de erro real.
+        if (quer && pareceSemSuporteAGuidedJson(erro)) {
+          this.suporteAGuidedJson.set(modelo, false)
+          tentativa -= 1
+          continue
+        }
+
+        if (ehTimeout(erro)) {
+          throw new FalhaDaIa(
+            'timeout',
+            `O modelo ${modelo} não respondeu a tempo.`,
+            modelo,
+          )
+        }
+
+        const status = statusDe(erro)
+        if (status === 401 || status === 403) {
+          // A chave já girou; a próxima tentativa sai pela outra conta.
+          continue
+        }
+        if (status === 429 || (status !== undefined && status >= 500)) {
+          if (tentativa < TENTATIVAS_POR_MODELO - 1) {
+            await dormir(1000 * 3 ** tentativa)
+          }
+          continue
+        }
+
+        // Erro que repetir não conserta (400 de prompt, por exemplo).
+        break
+      }
+    }
+
+    const status = statusDe(ultimoErro)
+    const motivo: MotivoDeFalhaDaIa =
+      status === 429
+        ? 'limite_de_taxa'
+        : status === 401 || status === 403
+          ? 'nao_autorizado'
+          : 'erro_do_provedor'
+
+    throw new FalhaDaIa(motivo, `O modelo ${modelo} falhou.`, modelo)
+  }
+
+  /**
+   * Cascata completa. Esgotados os três modelos, espera de 15–30s com jitter e
+   * repete o ciclo **uma única vez** — e só se o orçamento de tempo do
+   * pipeline comportar (doc 05). Senão a falha é retomável do cache.
+   */
+  async gerar(mensagens: Mensagem[]): Promise<ResultadoDaChamada> {
+    const dormir = this.config.dormir ?? dormirDeVerdade
+    let ultimaFalha: FalhaDaIa | undefined
+
+    for (let ciclo = 0; ciclo < 2; ciclo += 1) {
+      for (const modelo of this.config.models) {
+        try {
+          return await this.tentarModelo(modelo, mensagens)
+        } catch (erro) {
+          ultimaFalha = erro instanceof FalhaDaIa ? erro : undefined
+        }
+      }
+
+      if (ciclo === 1) break
+
+      const espera = this.esperaComJitter()
+      const restante = this.config.orcamentoRestanteMs?.() ?? Number.POSITIVE_INFINITY
+
+      if (restante < ORCAMENTO_PARA_SEGUNDO_CICLO_MS) {
+        throw new FalhaDaIa(
+          'orcamento_de_tempo',
+          'Os três modelos falharam e não sobrou tempo para tentar de novo. ' +
+            'Use "Tentar novamente" — o conteúdo já buscado fica em cache.',
+        )
+      }
+
+      await dormir(espera)
+    }
+
+    throw new FalhaDaIa(
+      'cascata_esgotada',
+      'Os três modelos falharam duas vezes seguidas. ' +
+        'Use "Tentar novamente" — o conteúdo já buscado fica em cache.',
+      ultimaFalha?.modelo,
+    )
+  }
+}
