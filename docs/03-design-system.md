@@ -39,9 +39,9 @@ O CF Jobs adota a paleta da comunidade e **acrescenta** o que um job board preci
 | `primary-muted` | `#c4b5fd` | `#a78bfa` | Hovers suaves, ícones ativos |
 | `foreground` | `#f5f5f5` | `#18181b` | Texto principal |
 | `muted-foreground` | `#a3a3a3` | `#52525b` | Texto secundário |
-| `subtle-foreground` | `#737373` | `#71717a` | Metadados, timestamps |
-| `success` | `#22c55e` | `#16a34a` | Vaga ativa, importação OK |
-| `warning` | `#eab308` | `#ca8a04` | Pendente de revisão |
+| `subtle-foreground` | `#737373` | `#71717a` | Apenas texto grande (≥24px, ou ≥19px bold) — rende só 3,8–4,1:1 nos fundos escuros; metadados pequenos usam `muted-foreground` |
+| `success` | `#22c55e` | `#15803d` | Vaga ativa, importação OK (claro escurecido p/ ~5:1 — achado do M3) |
+| `warning` | `#eab308` | `#a16207` | Pendente de revisão (claro escurecido p/ ~4,9:1 — achado do M3) |
 | `destructive` | `#ef4444` | `#dc2626` | Falhas, arquivada, remover |
 
 - **Dark é o tema padrão** (identidade da comunidade); tema claro disponível via toggle (`prefers-color-scheme` respeitado, persistido em cookie para evitar flash).
@@ -65,9 +65,11 @@ Escala (herdada do site): display 3rem/1.1 (hero), h2 2.25rem/1.2, h3 1.5rem/1.3
 - Badge de status apenas quando não-padrão: "Encerra em 2 dias" (warning, quando `expires_at` < 3 dias), "Arquivada" (neutral).
 - Card inteiro é um link (`<a>` único envolvendo, sem links aninhados); alvo de toque ≥ 44px.
 
-### Filtros
-- Desktop: sidebar fixa à esquerda (280px) com grupos colapsáveis (Tecnologia, Cargo, Senioridade, Modalidade, Contratação, Localização, Empresa, Tags, Status). Checkboxes com contagem por opção (facet counts).
-- Mobile: botão "Filtrar (n)" abre `Sheet` (bottom drawer). Chips dos filtros ativos sempre visíveis acima da lista, removíveis individualmente + "Limpar tudo".
+### Filtros *(revisado pós-M3 por decisão de produto — substitui a sidebar)*
+- **Padrão único desktop/mobile: botão "Filtros" com ícone de funil à direita da barra de busca**, com badge da contagem de filtros ativos ("Filtros · 3"). Sem sidebar fixa.
+- Ao clicar/tocar, expande um painel com os grupos colapsáveis (Tecnologia, Cargo, Senioridade, Modalidade, Contratação, Localização, Empresa, Tags, Status) e contagem por opção (facet counts). Desktop: popover largo ancorado abaixo do botão, alinhado à direita, em grid de 2–3 colunas. Mobile: painel de tela cheia (comportamento atual do M3).
+- Implementação preferencialmente sem JS obrigatório (padrão `<details>`/popover nativo, como o M3 já usa no mobile). Com JS: fecha com Esc e clique fora, `aria-expanded` no botão, foco vai ao painel ao abrir e retorna ao botão ao fechar.
+- **Chips dos filtros ativos permanecem sempre visíveis abaixo da barra de busca** (removíveis individualmente + "Limpar tudo"), mesmo com o painel fechado — o estado aplicado nunca fica escondido atrás do ícone.
 - Busca textual: input hero no topo com ícone, placeholder "Busque por cargo, tecnologia ou empresa…", debounce 300ms, atualiza a URL.
 
 ### Página da vaga

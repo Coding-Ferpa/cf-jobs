@@ -20,7 +20,7 @@ Decisão de fundo: **a homepage com filtros é dinâmica** (combinações infini
 1. **Hero compacto** (título "Vagas de tecnologia, direto ao ponto." + busca) — encolhe após primeira interação de scroll.
 2. **Barra de filtros ativos** (chips removíveis) + ordenação (Recentes | Relevância) + contagem de resultados.
 3. **Grid de JobCards** ([spec no doc 03](03-design-system.md)) — lista virtual não é necessária no MVP; paginação **"Carregar mais"** (botão) em vez de infinite scroll automático. Racional: infinite scroll puro prejudica footer, SEO e a sensação de controle; o botão dá o mesmo fluxo com URL atualizada (`?cursor=`) e permanece indexável via link `rel="next"`. Reavaliar na Fase 3 com dados de uso.
-4. **Sidebar de filtros** (desktop) / Sheet (mobile) com facet counts.
+4. **Painel de filtros** atrás do botão com ícone de funil à direita da busca — padrão único desktop/mobile (spec no [doc 03](03-design-system.md)), com facet counts.
 5. Footer com links da comunidade (site, Discord, GitHub do projeto, Instagram).
 
 Estados: skeletons nos cards durante transição de filtros (`useTransition`), empty state ilustrado, error boundary com retry.
