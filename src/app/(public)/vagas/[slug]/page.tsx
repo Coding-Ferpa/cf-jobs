@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -8,6 +9,7 @@ import { JobShare } from '@/components/jobs/job-share'
 import { getJobBySlug, listSimilarJobs } from '@/db/queries/jobs'
 import { clientEnv } from '@/lib/env'
 import { formatarData, formatarLocalizacao, formatarSalario } from '@/lib/format'
+import { breadcrumbJsonLd, jobPostingJsonLd, tituloDaVaga } from '@/lib/seo'
 
 /** Página de vaga é cacheada por 1h e invalidada pela tag da própria vaga. */
 const buscarVaga = unstable_cache(
@@ -30,6 +32,33 @@ function Resumo({ termo, valor }: { termo: string; valor: string }) {
   )
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const resultado = await buscarVaga(slug)
+
+  if (!resultado) return { title: 'Vaga não encontrada' }
+
+  const { vaga } = resultado
+  const caminho = `/vagas/${vaga.slug}`
+
+  return {
+    title: tituloDaVaga(vaga),
+    description: vaga.summary ?? undefined,
+    alternates: { canonical: caminho },
+    openGraph: {
+      type: 'article',
+      title: tituloDaVaga(vaga),
+      description: vaga.summary ?? undefined,
+      url: caminho,
+      publishedTime: vaga.publishedAt ?? undefined,
+    },
+  }
+}
+
 export default async function JobPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const resultado = await buscarVaga(slug)
@@ -44,6 +73,22 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <article className="flex flex-col gap-8 py-8">
+      {/* Dados estruturados do doc 08: é o que habilita o Google for Jobs. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jobPostingJsonLd(vaga, url)),
+        }}
+        type="application/ld+json"
+      />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbJsonLd(vaga, url, clientEnv().NEXT_PUBLIC_SITE_URL),
+          ),
+        }}
+        type="application/ld+json"
+      />
+
       <nav aria-label="Trilha de navegação">
         <ol className="text-caption text-muted-foreground flex flex-wrap gap-2">
           <li>

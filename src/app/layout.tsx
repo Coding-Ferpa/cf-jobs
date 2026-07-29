@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { JetBrains_Mono, Poppins } from 'next/font/google'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
+import { clientEnv } from '@/lib/env'
+
 import './globals.css'
 
 const poppins = Poppins({
@@ -19,12 +21,19 @@ const jetBrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  // Base para canonical e Open Graph resolverem URL relativa.
+  metadataBase: new URL(clientEnv().NEXT_PUBLIC_SITE_URL),
   title: {
     default: 'CF Jobs — Vagas da comunidade Coding Ferpa',
     template: '%s | CF Jobs',
   },
   description:
     'Vagas de tecnologia curadas pela comunidade Coding Ferpa: busca, filtros e o link oficial de cada oportunidade.',
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    siteName: 'CF Jobs',
+  },
 }
 
 export default function RootLayout({
