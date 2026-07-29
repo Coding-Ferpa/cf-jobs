@@ -77,11 +77,12 @@ describe('estatisticasDeImportacao', () => {
     const modelo = depois.porModelo.find((item) => item.chave === 'modelo-de-teste')
     expect(modelo?.total).toBe(2)
 
-    // Três latências novas, uma delas bem acima: o P95 não pode cair. Afirmar
-    // um valor exato dependeria do que outras suítes deixaram na janela.
-    expect(depois.latenciaP95Ms).not.toBeNull()
-    expect(depois.latenciaP95Ms!).toBeGreaterThanOrEqual(antes.latenciaP95Ms ?? 0)
-    expect(depois.latenciaMediaMs).not.toBeNull()
+    // A consulta traz latências e o percentil sai delas. O valor exato depende
+    // do que outras suítes deixaram na janela, e o P95 **pode cair** quando
+    // entram amostras baixas — a conta em si é coberta pelos testes de
+    // `percentil`, com amostra controlada.
+    expect(depois.latenciaP95Ms).toBeGreaterThan(0)
+    expect(depois.latenciaMediaMs).toBeGreaterThan(0)
 
     // Baixa confiança sai do `ai_response`, não de uma coluna: a de 0,3 conta.
     expect(depois.baixaConfianca).toBe(antes.baixaConfianca + 1)
