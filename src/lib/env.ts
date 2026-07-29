@@ -18,7 +18,10 @@ export const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
   DIRECT_URL: z.string().min(1),
-  NVIDIA_API_KEY: z.string().min(1),
+  // Opcional no boot (doc 01): quem contribui com UI ou banco não precisa de
+  // chave da NVIDIA para rodar o projeto. Quem valida é `requireAiEnv()`, no
+  // ponto de uso.
+  NVIDIA_API_KEY: z.string().min(1).optional(),
   AI_MODEL_PRIMARY: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
   AI_MODEL_FALLBACK: z.string().min(1).default('mistralai/mistral-small-24b-instruct'),
   CRON_SECRET: z.string().min(16),
@@ -85,6 +88,37 @@ let cachedServerEnv: ServerEnv | undefined
 export function clientEnv(): ClientEnv {
   cachedClientEnv ??= parseClientEnv(rawClientEnv)
   return cachedClientEnv
+}
+
+export type AiEnv = {
+  apiKey: string
+  primaryModel: string
+  fallbackModel: string
+}
+
+export function resolveAiEnv(env: ServerEnv): AiEnv {
+  if (!env.NVIDIA_API_KEY) {
+    throw new Error(
+      'NVIDIA_API_KEY não está definida e a importação por IA depende dela. ' +
+        'Crie uma chave em build.nvidia.com e adicione ao .env — o resto do ' +
+        'projeto funciona sem.',
+    )
+  }
+
+  return {
+    apiKey: env.NVIDIA_API_KEY,
+    primaryModel: env.AI_MODEL_PRIMARY,
+    fallbackModel: env.AI_MODEL_FALLBACK,
+  }
+}
+
+/**
+ * Configuração da NVIDIA NIM, exigida só onde é usada: o pipeline de
+ * importação. Falha aqui é erro de configuração de quem vai importar, não
+ * motivo para o app inteiro não subir (doc 01).
+ */
+export function requireAiEnv(): AiEnv {
+  return resolveAiEnv(serverEnv())
 }
 
 /**

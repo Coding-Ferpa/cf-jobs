@@ -126,7 +126,6 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "DATABASE_URL=$DB_URL"
             echo "DIRECT_URL=$DB_URL"
-            echo "NVIDIA_API_KEY=nao-usada-no-e2e"
             echo "CRON_SECRET=segredo-de-teste-do-ci-cfjobs"
           } >> "$GITHUB_ENV"
       # O build roda pelo webServer do playwright.config.ts.

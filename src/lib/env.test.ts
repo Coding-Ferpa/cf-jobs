@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { parseClientEnv, parseServerEnv } from '@/lib/env'
+import { parseClientEnv, parseServerEnv, resolveAiEnv } from '@/lib/env'
 
 const validServerEnv = {
   SUPABASE_SERVICE_ROLE_KEY: 'service-role',
   DATABASE_URL: 'postgresql://postgres@localhost:6543/postgres',
   DIRECT_URL: 'postgresql://postgres@localhost:5432/postgres',
-  NVIDIA_API_KEY: 'nvapi-teste',
   CRON_SECRET: 'segredo-com-16-chars',
 }
 
@@ -87,7 +86,35 @@ describe('parseServerEnv', () => {
   it('ignora variáveis extras do process.env', () => {
     const env = parseServerEnv({ ...validServerEnv, PATH: '/usr/bin' })
 
-    expect(env.NVIDIA_API_KEY).toBe('nvapi-teste')
+    expect(env.DATABASE_URL).toBe('postgresql://postgres@localhost:6543/postgres')
+  })
+
+  it('sobe sem NVIDIA_API_KEY — só a importação depende dela', () => {
+    const env = parseServerEnv(validServerEnv)
+
+    expect(env.NVIDIA_API_KEY).toBeUndefined()
+  })
+})
+
+describe('resolveAiEnv', () => {
+  it('entrega chave e modelos quando a chave existe', () => {
+    const ai = resolveAiEnv(
+      parseServerEnv({ ...validServerEnv, NVIDIA_API_KEY: 'nvapi-teste' }),
+    )
+
+    expect(ai).toEqual({
+      apiKey: 'nvapi-teste',
+      primaryModel: 'meta/llama-3.3-70b-instruct',
+      fallbackModel: 'mistralai/mistral-small-24b-instruct',
+    })
+  })
+
+  it('falha citando a variável e o caminho da correção', () => {
+    const env = parseServerEnv(validServerEnv)
+
+    // A mensagem é lida por quem está configurando a importação pela 1a vez.
+    expect(() => resolveAiEnv(env)).toThrow(/NVIDIA_API_KEY/)
+    expect(() => resolveAiEnv(env)).toThrow(/build\.nvidia\.com/)
   })
 })
 
