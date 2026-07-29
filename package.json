@@ -22,6 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "check:env": "tsx scripts/check-env.ts",
+    "check:schema": "tsx scripts/check-schema.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:status": "supabase status",
@@ -30,9 +31,12 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "drizzle-orm": "0.45.2",
     "next": "15.5.22",
+    "postgres": "3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "zod": "4.4.3"
   },
   "devDependencies": {
