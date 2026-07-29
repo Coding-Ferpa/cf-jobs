@@ -33,11 +33,14 @@ export class FalhaDeExtracao extends Error {
   }
 }
 
+/** Vai para `job_imports.source_site` e para o painel de observabilidade. */
+export type OrigemDoConteudo =
+  'json-ld' | 'readability' | 'greenhouse' | 'lever' | 'ashby' | 'gupy'
+
 export type ConteudoExtraido = {
   markdown: string
   estruturado: DadosEstruturados | null
-  /** De onde saiu o Markdown — vai para o painel de observabilidade. */
-  origem: 'json-ld' | 'readability'
+  origem: OrigemDoConteudo
   truncado: boolean
 }
 

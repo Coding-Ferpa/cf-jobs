@@ -41,6 +41,32 @@ function conversor(): TurndownService {
   // quem revisa.
   turndown.remove(['script', 'style', 'noscript', 'iframe', 'form', 'nav', 'footer'])
 
+  // O padrão do Turndown escreve `-   item`, com três espaços de recuo. É
+  // Markdown válido, mas polui um texto que vai tanto para o prompt quanto
+  // para a caixa de edição da revisão — e recuo de 4 espaços em item aninhado
+  // ainda flerta com bloco de código.
+  turndown.addRule('itemDeLista', {
+    filter: 'li',
+    replacement(conteudo, node, opcoes) {
+      const texto = conteudo
+        .replace(/^\n+/, '')
+        .replace(/\n+$/, '\n')
+        .replace(/\n/gm, '\n  ')
+
+      const pai = node.parentNode as HTMLElement | null
+      let marcador = `${opcoes.bulletListMarker} `
+
+      if (pai?.nodeName === 'OL') {
+        const inicio = Number(pai.getAttribute('start') ?? 1)
+        const indice = Array.prototype.indexOf.call(pai.children, node)
+        marcador = `${inicio + indice}. `
+      }
+
+      const quebra = node.nextSibling && !/\n$/.test(texto) ? '\n' : ''
+      return marcador + texto + quebra
+    },
+  })
+
   return turndown
 }
 

@@ -1,0 +1,31 @@
+{
+  "jobs": [
+    {
+      "id": "1f0a77c2-93b8-4d0e-9a2c-6b5e1d8f4477",
+      "title": "Machine Learning Engineer",
+      "location": "Remote",
+      "employmentType": "FullTime",
+      "isRemote": true,
+      "publishedAt": "2026-07-11T12:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/tucanotech/1f0a77c2-93b8-4d0e-9a2c-6b5e1d8f4477",
+      "applyUrl": "https://jobs.ashbyhq.com/tucanotech/1f0a77c2-93b8-4d0e-9a2c-6b5e1d8f4477/application",
+      "descriptionHtml": "<h2>Sobre a vaga</h2><p>Você vai treinar e servir modelos de recomendação em produção.</p><h2>Requisitos</h2><ul><li>Python e PyTorch</li><li>MLOps com Kubernetes</li></ul>",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Belo Horizonte",
+          "addressRegion": "MG",
+          "addressCountry": "BR"
+        }
+      }
+    },
+    {
+      "id": "2c9d5e11-4a7f-4b20-8e31-9d0c7a6b3312",
+      "title": "Product Designer",
+      "location": "São Paulo",
+      "employmentType": "FullTime",
+      "isRemote": false,
+      "publishedAt": "2026-07-02T12:00:00.000Z",
+      "descriptionHtml": "<p>Design de produto para o app de logística.</p>"
+    }
+  ]
+}

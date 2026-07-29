@@ -1,0 +1,26 @@
+{
+  "id": "0f2b91ac-77bd-4e2f-9b1e-2a44c1de0b31",
+  "text": "Pessoa Desenvolvedora Frontend Pleno",
+  "hostedUrl": "https://jobs.lever.co/maredigital/0f2b91ac-77bd-4e2f-9b1e-2a44c1de0b31",
+  "applyUrl": "https://jobs.lever.co/maredigital/0f2b91ac-77bd-4e2f-9b1e-2a44c1de0b31/apply",
+  "createdAt": 1784150400000,
+  "categories": {
+    "commitment": "Full-time",
+    "location": "Remoto - Brasil",
+    "team": "Produto",
+    "workplaceType": "remote"
+  },
+  "description": "<div><p>A Maré Digital procura pessoa desenvolvedora frontend para evoluir o produto de assinaturas.</p></div>",
+  "descriptionPlain": "A Maré Digital procura pessoa desenvolvedora frontend para evoluir o produto de assinaturas.",
+  "lists": [
+    {
+      "text": "Requisitos",
+      "content": "<li>React e TypeScript no dia a dia</li><li>Cuidado com acessibilidade</li><li>Testes automatizados</li>"
+    },
+    {
+      "text": "Benefícios",
+      "content": "<li>Plano de saúde</li><li>Auxílio home office</li>"
+    }
+  ],
+  "additional": "<p>Processo em três etapas, todas remotas.</p>"
+}

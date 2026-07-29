@@ -1,0 +1,9 @@
+{
+  "id": "aa11bb22-cc33-dd44-ee55-ff6677889900",
+  "text": "Data Engineer",
+  "hostedUrl": "https://jobs.lever.co/verdelog/aa11bb22-cc33-dd44-ee55-ff6677889900",
+  "createdAt": 1783372800000,
+  "categories": { "commitment": "Contract", "location": "Curitiba, PR" },
+  "descriptionPlain": "Build and maintain the data pipelines that feed the delivery routing models. Python, Airflow and BigQuery.",
+  "lists": []
+}

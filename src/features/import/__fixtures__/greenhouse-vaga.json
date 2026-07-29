@@ -1,0 +1,14 @@
+{
+  "id": 4512233,
+  "internal_job_id": 2201144,
+  "title": "Senior Backend Engineer",
+  "updated_at": "2026-07-18T14:02:11-04:00",
+  "requisition_id": "R-1042",
+  "location": { "name": "São Paulo, Brazil" },
+  "absolute_url": "https://boards.greenhouse.io/auroratech/jobs/4512233",
+  "company_name": "Aurora Tech",
+  "metadata": [],
+  "content": "&lt;h2&gt;About the role&lt;/h2&gt;\n&lt;p&gt;We are looking for a Senior Backend Engineer to join the payments platform team. You will design services that move money at scale &amp;amp; keep them observable.&lt;/p&gt;\n&lt;h2&gt;Requirements&lt;/h2&gt;\n&lt;ul&gt;\n&lt;li&gt;Strong experience with Go or Java&lt;/li&gt;\n&lt;li&gt;PostgreSQL and event-driven architectures&lt;/li&gt;\n&lt;li&gt;Kubernetes in production&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h2&gt;Benefits&lt;/h2&gt;\n&lt;ul&gt;\n&lt;li&gt;Health insurance&lt;/li&gt;\n&lt;li&gt;Learning budget&lt;/li&gt;\n&lt;/ul&gt;",
+  "departments": [{ "id": 88, "name": "Engineering" }],
+  "offices": [{ "id": 12, "name": "São Paulo" }]
+}

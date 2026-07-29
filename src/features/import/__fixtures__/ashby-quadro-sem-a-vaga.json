@@ -1,0 +1,12 @@
+{
+  "jobs": [
+    {
+      "id": "99999999-0000-4000-8000-000000000001",
+      "title": "Outra vaga qualquer",
+      "location": "Remote",
+      "employmentType": "FullTime",
+      "isRemote": true,
+      "descriptionHtml": "<p>Esta é a única vaga publicada no quadro.</p>"
+    }
+  ]
+}
