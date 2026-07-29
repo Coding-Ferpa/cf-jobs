@@ -367,7 +367,17 @@ select
   d.salary_max::numeric(12, 2),
   d.currency::char(3),
   'https://' || d.company_slug || '.exemplo.test/vagas/' || d.slug,
-  'seed-' || d.slug,
+  -- sha256 da URL de verdade, e não um valor de fachada: é a chave de dedup
+  -- (doc 04), e com um placeholder aqui reimportar uma vaga do seed criaria
+  -- duplicata em vez de ser recusada. As URLs acima já são canônicas, então o
+  -- hash bate com o que `hashDaUrl` calcula na aplicação.
+  encode(
+    extensions.digest(
+      'https://' || d.company_slug || '.exemplo.test/vagas/' || d.slug,
+      'sha256'
+    ),
+    'hex'
+  ),
   'generic',
   'https://' || d.company_slug || '.exemplo.test/vagas/' || d.slug || '/candidatar',
   d.status::public.job_status,
