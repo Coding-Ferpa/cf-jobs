@@ -34,7 +34,8 @@ O CF Jobs adota a paleta da comunidade e **acrescenta** o que um job board preci
 | `card` / `elevated` | `#161616` | `#ffffff` | Cards de vaga, painéis |
 | `surface` | `#1e1e1e` | `#f4f4f5` | Inputs, chips, hover |
 | `border` | `#262626` | `#e4e4e7` | Bordas e divisores |
-| `primary` | `#8b5cf6` | `#7c3aed` | CTAs, links, foco, marca |
+| `primary` | `#8b5cf6` | `#7c3aed` | Acento da marca: bordas ativas, anel de foco, glow, ícones, links grandes |
+| `primary-solid` | `#7c3aed` | `#7c3aed` | Fundo de controles preenchidos (botões, badges sólidos) com texto branco — 5,7:1, AA |
 | `primary-muted` | `#c4b5fd` | `#a78bfa` | Hovers suaves, ícones ativos |
 | `foreground` | `#f5f5f5` | `#18181b` | Texto principal |
 | `muted-foreground` | `#a3a3a3` | `#52525b` | Texto secundário |
@@ -44,7 +45,7 @@ O CF Jobs adota a paleta da comunidade e **acrescenta** o que um job board preci
 | `destructive` | `#ef4444` | `#dc2626` | Falhas, arquivada, remover |
 
 - **Dark é o tema padrão** (identidade da comunidade); tema claro disponível via toggle (`prefers-color-scheme` respeitado, persistido em cookie para evitar flash).
-- Contraste verificado: todos os pares texto/fundo acima atendem WCAG AA (≥ 4.5:1 para texto normal). `#737373` sobre `#0d0d0d` só é permitido em texto ≥ 18px ou bold (AA large).
+- Contraste verificado: todos os pares texto/fundo acima atendem WCAG AA (≥ 4.5:1 para texto normal). `#737373` sobre `#0d0d0d` só é permitido em texto ≥ 18px ou bold (AA large). **Atenção:** branco sobre `#8b5cf6` rende apenas ~4,2:1 (reprova AA para texto normal) — por isso controles preenchidos usam `primary-solid` (`#7c3aed`, 5,7:1); `#8b5cf6` nunca é fundo de texto branco em tamanho normal.
 - Implementação: tokens no `@theme` do Tailwind v4 mapeados para as variáveis padrão do shadcn/ui (`--background`, `--primary`...), de modo que componentes shadcn herdem a identidade sem retoque.
 
 ## Tipografia
@@ -77,7 +78,7 @@ Escala (herdada do site): display 3rem/1.1 (hero), h2 2.25rem/1.2, h3 1.5rem/1.3
 - Vaga arquivada: banner amarelo no topo "Esta vaga expirou em {data}", CTA desabilitado com link "ver vagas semelhantes".
 
 ### Botões
-- Primário: pill (`radius-full`), fundo `primary`, texto branco, peso 600 — espelha o "Participe" do site.
+- Primário: pill (`radius-full`), fundo `primary-solid` (`#7c3aed`), texto branco, peso 600 — espelha o "Participe" do site com contraste AA.
 - Secundário: outline com borda `border`, hover borda `primary-muted`.
 - Foco: anel de 2px `primary` com offset — sempre visível (a11y).
 
