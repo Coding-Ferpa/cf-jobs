@@ -3,7 +3,7 @@ import 'server-only'
 import { sql, type SQL } from 'drizzle-orm'
 
 import { queryAsAnon } from '@/db/client'
-import { decodeCursor, encodeCursor } from '@/lib/cursor'
+import { decodeCursor, encodeCursor, LIMITE_MAXIMO, LIMITE_PADRAO } from '@/lib/cursor'
 
 /**
  * Leituras públicas de vagas (doc 06). A área pública e a API v1 compartilham
@@ -13,9 +13,6 @@ import { decodeCursor, encodeCursor } from '@/lib/cursor'
  * tecnologias e paginação por cursor, uma query formatada se lê melhor que a
  * mesma coisa montada em joins condicionais. Todo valor entra parametrizado.
  */
-
-export const LIMITE_PADRAO = 20
-export const LIMITE_MAXIMO = 50
 
 export type JobStatusFilter = 'published' | 'archived' | 'all'
 export type JobSort = 'recent' | 'relevance'
@@ -74,6 +71,9 @@ export type JobDetail = JobListItem & {
   applyUrl: string
   sourceUrl: string
   sourceSite: string | null
+  /** Denormalizados pelo rollup diário (doc 04) — não somam eventos ao vivo. */
+  viewsCount: number
+  clicksCount: number
   updatedAt: string
   archivedAt: string | null
 }
@@ -394,21 +394,23 @@ export async function listJobs(filters: JobFilters = {}): Promise<JobList> {
   }
 }
 
+type LinhaDeDetalhe = LinhaDeCard & {
+  descriptionMd: string
+  benefits: string[]
+  keywords: string[]
+  language: string
+  applyUrl: string
+  sourceUrl: string
+  sourceSite: string | null
+  viewsCount: number
+  clicksCount: number
+  updatedAt: DataBruta
+  archivedAt: DataBruta
+}
+
 export async function getJobBySlug(slug: string): Promise<JobDetail | null> {
   const linhas = await queryAsAnon(async (tx) => {
-    const resultado = await tx.execute<
-      LinhaDeCard & {
-        descriptionMd: string
-        benefits: string[]
-        keywords: string[]
-        language: string
-        applyUrl: string
-        sourceUrl: string
-        sourceSite: string | null
-        updatedAt: DataBruta
-        archivedAt: DataBruta
-      }
-    >(sql`
+    const resultado = await tx.execute<LinhaDeDetalhe>(sql`
       select
         ${COLUNAS_DE_CARD},
         j.description_md as "descriptionMd",
@@ -418,6 +420,8 @@ export async function getJobBySlug(slug: string): Promise<JobDetail | null> {
         j.apply_url as "applyUrl",
         j.source_url as "sourceUrl",
         j.source_site as "sourceSite",
+        j.views_count as "viewsCount",
+        j.clicks_count as "clicksCount",
         j.updated_at as "updatedAt",
         j.archived_at as "archivedAt"
       from public.jobs j
@@ -425,17 +429,7 @@ export async function getJobBySlug(slug: string): Promise<JobDetail | null> {
       where j.slug = ${slug}
       limit 1
     `)
-    return resultado as unknown as (LinhaDeCard & {
-      descriptionMd: string
-      benefits: string[]
-      keywords: string[]
-      language: string
-      applyUrl: string
-      sourceUrl: string
-      sourceSite: string | null
-      updatedAt: DataBruta
-      archivedAt: DataBruta
-    })[]
+    return resultado as unknown as LinhaDeDetalhe[]
   })
 
   const linha = linhas.at(0)
@@ -450,6 +444,8 @@ export async function getJobBySlug(slug: string): Promise<JobDetail | null> {
     applyUrl: linha.applyUrl,
     sourceUrl: linha.sourceUrl,
     sourceSite: linha.sourceSite,
+    viewsCount: Number(linha.viewsCount),
+    clicksCount: Number(linha.clicksCount),
     updatedAt: paraIso(linha.updatedAt) ?? new Date().toISOString(),
     archivedAt: paraIso(linha.archivedAt),
   }
@@ -545,6 +541,33 @@ export async function getFacets(filters: JobFilters = {}): Promise<Facet[]> {
   })
 
   return linhas
+}
+
+/**
+ * Teto da estimativa de total (doc 06). Contar a tabela inteira a cada
+ * listagem é caro e não serve para nada: ninguém pagina até o fim, e a UI só
+ * precisa saber se o resultado é pequeno ou "muito". Acima do teto o número
+ * satura, e é por isso que o campo se chama `total_estimate`.
+ */
+export const TETO_DA_ESTIMATIVA = 1000
+
+export async function countJobs(filters: JobFilters = {}): Promise<number> {
+  const condicoes = condicoesDeFiltro(filters)
+
+  const linhas = await queryAsAnon(async (tx) => {
+    const resultado = await tx.execute<{ total: number }>(sql`
+      select count(*)::int as total
+        from (
+          select 1
+            from public.jobs j
+           where ${condicoes}
+           limit ${TETO_DA_ESTIMATIVA}
+        ) amostra
+    `)
+    return resultado as unknown as { total: number }[]
+  })
+
+  return Number(linhas.at(0)?.total ?? 0)
 }
 
 /** Slugs de todas as vagas publicadas — usado pelo sitemap e pelo SSG. */

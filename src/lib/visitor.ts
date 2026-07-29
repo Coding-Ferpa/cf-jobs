@@ -21,6 +21,17 @@ export function visitorHash(entrada: {
 }
 
 /**
+ * Chave de rate limit (doc 07): hash do IP, sem o dia e sem o user agent.
+ *
+ * Diferente do `visitorHash`, esta não deve rotacionar — o limite é por
+ * endereço, e trocar de navegador não pode zerar o balde. Continua sendo hash
+ * porque a tabela `rate_limits` não tem por que guardar IP em claro.
+ */
+export function ipHash(ip: string, salt: string): string {
+  return createHash('sha256').update(`${ip}|${salt}`).digest('hex')
+}
+
+/**
  * IP de quem chamou. Na Vercel vem em `x-forwarded-for`; o primeiro endereço é
  * o cliente, os seguintes são proxies.
  */

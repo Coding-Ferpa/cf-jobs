@@ -1,9 +1,17 @@
 import 'server-only'
 
+import { randomUUID } from 'node:crypto'
+
 import { sql } from 'drizzle-orm'
 
 import { queryAsAnon } from '@/db/client'
-import { JANELA_EM_SEGUNDOS, type ResultadoDeLimite } from '@/lib/api/rate-limit'
+import {
+  chaveDeLimite,
+  JANELA_EM_SEGUNDOS,
+  type ResultadoDeLimite,
+} from '@/lib/api/rate-limit'
+import { requireAnalyticsSalt } from '@/lib/env'
+import { ipDaRequisicao, ipHash } from '@/lib/visitor'
 
 /**
  * Consome uma unidade do balde e devolve o estado da janela (doc 07). Quem
@@ -55,4 +63,30 @@ export async function consumirLimite(
     restantes: Number(linha.remaining),
     reiniciaEm: Math.floor(reset.getTime() / 1000),
   }
+}
+
+/**
+ * Sal do hash de IP. Reaproveita o do `visitor_hash` quando existe; sem ele,
+ * um sal sorteado no boot do processo mantém o endereço fora do banco do mesmo
+ * jeito. O limite passa a valer por instância nesse caso — degradação bem mais
+ * aceitável que devolver 503 na API pública por uma variável opcional.
+ */
+const SAL_DE_PROCESSO = randomUUID()
+
+function salDoLimite(): string {
+  try {
+    return requireAnalyticsSalt()
+  } catch {
+    return SAL_DE_PROCESSO
+  }
+}
+
+/** Consome o balde de quem fez a requisição, por IP (doc 07). */
+export async function limitarCliente(
+  headers: Headers,
+  escopo: 'api' | 'events',
+  limite: number,
+): Promise<ResultadoDeLimite> {
+  const chave = chaveDeLimite(escopo, ipHash(ipDaRequisicao(headers), salDoLimite()))
+  return consumirLimite(chave, limite)
 }

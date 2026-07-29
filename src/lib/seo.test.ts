@@ -29,6 +29,8 @@ const VAGA: JobDetail = {
   applyUrl: 'https://aurora.exemplo.test/vagas/sre/candidatar',
   sourceUrl: 'https://aurora.exemplo.test/vagas/sre',
   sourceSite: 'generic',
+  viewsCount: 0,
+  clicksCount: 0,
   updatedAt: '2026-07-20T12:00:00.000Z',
   archivedAt: null,
 }

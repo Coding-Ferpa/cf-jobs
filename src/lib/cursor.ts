@@ -8,6 +8,10 @@ import { z } from 'zod'
  * publicadas no mesmo instante — sem ele a ordenação não é estável.
  */
 
+/** Tamanho de página do doc 06. Mora aqui para a API e o banco lerem o mesmo. */
+export const LIMITE_PADRAO = 20
+export const LIMITE_MAXIMO = 50
+
 const cursorSchema = z.object({
   p: z.string().min(1),
   i: z.uuid(),
