@@ -35,7 +35,7 @@ Você é o engenheiro executor do projeto **CF Jobs** — plataforma open source
 
 **M7 — Analytics e dashboard completo.** Rollup diário, todos os widgets do doc 09, Sentry opcional por env, widget de saúde. *DoD: CTR e origem de visitantes visíveis com dados reais.*
 
-**M8 — Produção.** Projeto Supabase + Vercel, envs, domínio, `deploy-db.yml`, Release Please, smoke test em produção, runbook (`docs/runbooks.md`). Nas configurações do projeto na Vercel, **fixar Node 24.x** em build e functions — é a baseline do [doc 01](01-stack.md) e o padrão da plataforma, mas deixar implícito faz o runtime mudar sozinho na próxima virada de default. *DoD: Fase 1+2 do roadmap em produção com 20 vagas reais.*
+**M8 — Produção.** Projeto Supabase + Vercel, envs, domínio, `deploy-db.yml`, Release Please, smoke test em produção, runbook (`docs/runbooks.md`). Nas configurações do projeto na Vercel, **fixar Node 24.x** em build e functions — é a baseline do [doc 01](01-stack.md) e o padrão da plataforma, mas deixar implícito faz o runtime mudar sozinho na próxima virada de default. Subir para **pnpm 11** aqui, com a política `minimumReleaseAge` já aprovada, migrando os overrides do [ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md) para `pnpm-workspace.yaml`. *DoD: Fase 1+2 do roadmap em produção com 20 vagas reais.*
 
 ## Ao ficar em dúvida
 

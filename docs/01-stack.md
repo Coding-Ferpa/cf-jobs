@@ -102,15 +102,17 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 
 ### Majors seguradas de propósito
 
-Verificado no lote de manutenção de 2026-07-29. Cada linha tem um par do ecossistema que ainda não acompanha a major nova — subir exigiria override ou desligar proteção, e nenhum dos dois compensa. **Revisitar quando o bloqueio sair**, não antes.
+Verificado no lote de manutenção de 2026-07-29 (M4.1) e revisto no M4.2. Cada linha tem um motivo concreto para ficar onde está — subir exigiria override, desligar proteção ou quebrar o lockfile, e nenhum dos três compensa hoje. **Revisitar quando o motivo sair**, não antes.
 
 | Segurado em | Major disponível | O que trava |
 | --- | --- | --- |
 | ESLint 9 | 10 | `eslint-plugin-react` (peer `^9.7`) e `eslint-plugin-jsx-a11y` (peer `^9`) não declaram suporte ao 10 nas versões estáveis |
 | TypeScript 5.9 | 7 | `typescript-eslint` aborta com "does not support TS 7.0" — o lint inteiro para |
-| pnpm 10 | 11 | O 11 estreia a política `minimumReleaseAge`, que rejeita pacotes publicados nas últimas 24 h e recusa o lockfile atual. Adotar é decisão de postura de supply chain do mantenedor ([doc 07](07-seguranca.md), A06/A08), não efeito colateral de upgrade. O 11 também deixa de ler o campo `pnpm` do package.json — os overrides precisam migrar para `pnpm-workspace.yaml` junto |
-| jsdom 29 | 30 | O 30 exige `^22.22.2 \|\| ^24.15.0 \|\| >=26`, faixa que exclui Node 24.0–24.14; subir estreitaria o `engines` do projeto |
-| `@types/node` 22 | 26 | Alinhado ao runtime de propósito: com a baseline elevada a **Node 24** (pós-M4.1), os tipos vão para a maior versão da **série 24** — não 26, que tiparia APIs que o runtime não tem |
+| pnpm 10 | 11 | **Adoção agendada para o M8**, não bloqueio técnico: a política `minimumReleaseAge` do 11 (rejeita pacotes publicados nas últimas 24 h) está **aprovada pelo mantenedor** como postura de supply chain, alinhada ao [doc 07](07-seguranca.md) (A08). Fica para o M8 porque hoje ela recusa 13 pacotes recém-publicados do lockfile; até lá eles terão envelhecido. Na virada, os overrides do [ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md) migram para `pnpm-workspace.yaml` — o 11 deixa de ler o campo `pnpm` do package.json |
+
+`@types/node` fica fora da tabela porque não é bloqueio nenhum: os tipos **acompanham a série do runtime** (24), não a maior publicada (26). Tipar API que o runtime não tem troca erro de compilação por erro de produção.
+
+O jsdom saiu da tabela no M4.2: o 30 exige `^22.22.2 || ^24.15.0 || >=26` e a baseline de Node 24.15 satisfaz a faixa.
 
 ## Variáveis de ambiente (contrato)
 
