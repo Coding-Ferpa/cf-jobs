@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { JetBrains_Mono, Poppins } from 'next/font/google'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 import './globals.css'
 
@@ -35,7 +36,10 @@ export default function RootLayout({
       lang="pt-BR"
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        {/* O nuqs precisa do adapter do App Router para escrever na URL. */}
+        <NuqsAdapter>{children}</NuqsAdapter>
+      </body>
     </html>
   )
 }

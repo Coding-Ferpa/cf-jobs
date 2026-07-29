@@ -64,12 +64,16 @@ export default tseslint.config(
   {
     files: ['src/components/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': [
+      // A regra do doc 02 é sobre acesso ao banco, não sobre tipos: tipar props
+      // com o retorno de uma query é exatamente o fluxo desejado, e
+      // `import type` some no build.
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
             {
               group: ['@/db', '@/db/*', '**/db/queries', '**/db/schema'],
+              allowTypeImports: true,
               message:
                 'Componentes não acessam o banco: recebam dados por props de Server Components (doc 02).',
             },

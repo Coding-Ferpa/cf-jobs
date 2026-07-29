@@ -61,8 +61,9 @@ export type JobListItem = {
   technologies: JobTechnologyRef[]
   tags: TaxonomyRef[]
   status: 'published' | 'archived'
-  publishedAt: Date | null
-  expiresAt: Date | null
+  /** ISO 8601 em UTC — texto para o payload seguir serializável. */
+  publishedAt: string | null
+  expiresAt: string | null
 }
 
 export type JobDetail = JobListItem & {
@@ -73,8 +74,8 @@ export type JobDetail = JobListItem & {
   applyUrl: string
   sourceUrl: string
   sourceSite: string | null
-  updatedAt: Date
-  archivedAt: Date | null
+  updatedAt: string
+  archivedAt: string | null
 }
 
 export type JobList = {
@@ -273,9 +274,9 @@ const JUNCOES_DE_CARD = sql`
  */
 type DataBruta = string | Date | null
 
-function paraData(valor: DataBruta): Date | null {
+function paraIso(valor: DataBruta): string | null {
   if (valor === null) return null
-  return valor instanceof Date ? valor : new Date(valor)
+  return valor instanceof Date ? valor.toISOString() : new Date(valor).toISOString()
 }
 
 type LinhaDeCard = {
@@ -339,8 +340,8 @@ function paraJobListItem(linha: LinhaDeCard): JobListItem {
     technologies: linha.technologies,
     tags: linha.tags,
     status: linha.status,
-    publishedAt: paraData(linha.publishedAt),
-    expiresAt: paraData(linha.expiresAt),
+    publishedAt: paraIso(linha.publishedAt),
+    expiresAt: paraIso(linha.expiresAt),
   }
 }
 
@@ -381,14 +382,14 @@ export async function listJobs(filters: JobFilters = {}): Promise<JobList> {
   const hasMore = linhas.length > limite
   const pagina = hasMore ? linhas.slice(0, limite) : linhas
   const ultima = pagina.at(-1)
-  const ultimaData = ultima ? paraData(ultima.publishedAt) : null
+  const ultimaData = ultima ? paraIso(ultima.publishedAt) : null
 
   return {
     jobs: pagina.map(paraJobListItem),
     hasMore,
     nextCursor:
       hasMore && ultima && ultimaData
-        ? encodeCursor({ publishedAt: ultimaData, id: ultima.id })
+        ? encodeCursor({ publishedAt: new Date(ultimaData), id: ultima.id })
         : null,
   }
 }
@@ -449,8 +450,8 @@ export async function getJobBySlug(slug: string): Promise<JobDetail | null> {
     applyUrl: linha.applyUrl,
     sourceUrl: linha.sourceUrl,
     sourceSite: linha.sourceSite,
-    updatedAt: paraData(linha.updatedAt) ?? new Date(),
-    archivedAt: paraData(linha.archivedAt),
+    updatedAt: paraIso(linha.updatedAt) ?? new Date().toISOString(),
+    archivedAt: paraIso(linha.archivedAt),
   }
 }
 
@@ -548,7 +549,7 @@ export async function getFacets(filters: JobFilters = {}): Promise<Facet[]> {
 
 /** Slugs de todas as vagas publicadas — usado pelo sitemap e pelo SSG. */
 export async function listPublishedJobSlugs(): Promise<
-  { slug: string; updatedAt: Date }[]
+  { slug: string; updatedAt: string }[]
 > {
   const linhas = await queryAsAnon(async (tx) => {
     const resultado = await tx.execute<{ slug: string; updatedAt: DataBruta }>(sql`
@@ -562,6 +563,6 @@ export async function listPublishedJobSlugs(): Promise<
 
   return linhas.map((linha) => ({
     slug: linha.slug,
-    updatedAt: paraData(linha.updatedAt) ?? new Date(),
+    updatedAt: paraIso(linha.updatedAt) ?? new Date().toISOString(),
   }))
 }
