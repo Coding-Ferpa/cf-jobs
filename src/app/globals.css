@@ -41,8 +41,11 @@
   --foreground: #18181b;
   --muted-foreground: #52525b;
   --subtle-foreground: #71717a;
-  --success: #16a34a;
-  --warning: #ca8a04;
+  /* Verde e âmbar do doc 03 rendiam 3,3:1 e 2,9:1 sobre o card branco, abaixo
+     do AA que o próprio doc promete. Escurecidos para 5,0:1 sem sair da
+     família de cor — mesma leitura semântica, contraste que passa. */
+  --success: #15803d;
+  --warning: #a16207;
   --destructive: #dc2626;
 }
 
