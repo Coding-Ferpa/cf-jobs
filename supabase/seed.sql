@@ -438,6 +438,97 @@ cross join lateral unnest(string_to_array(e.tag_slugs, ',')) as tag(slug)
 join public.tags t on t.slug = tag.slug;
 
 -- ---------------------------------------------------------------------------
+-- Eventos de exemplo para o painel de analytics
+-- ---------------------------------------------------------------------------
+--
+-- Sem eles o dashboard do doc 09 abre com todos os números em zero, e quem for
+-- mexer nos widgets não tem como ver o que está construindo. São sintéticos e
+-- só existem no reset local — em produção quem escreve aqui é o beacon.
+--
+-- O volume varia por vaga e por dia de propósito: uma série reta esconderia
+-- erro de agrupamento, e um CTR constante esconderia divisão errada.
+
+with dias as (
+  select generate_series(
+    (now() at time zone 'utc')::date - 45,
+    (now() at time zone 'utc')::date - 1,
+    interval '1 day'
+  )::date as dia
+),
+vagas as (
+  select id, row_number() over (order by slug) as posicao
+    from public.jobs
+   where status = 'published'
+),
+origens (rotulo, utm, referrer) as (
+  values
+    ('discord', 'discord', null),
+    ('whatsapp', 'whatsapp', null),
+    ('google', null, 'https://www.google.com/search?q=vagas+backend'),
+    ('linkedin', 'linkedin', null),
+    ('direto', null, null)
+),
+visitas as (
+  select
+    v.id as job_id,
+    d.dia,
+    o.utm,
+    o.referrer,
+    -- Determinístico: o mesmo reset produz o mesmo painel, e comparar duas
+    -- execuções continua fazendo sentido.
+    generate_series(1, 1 + ((v.posicao * 7 + extract(doy from d.dia)::int) % 9)) as n,
+    o.rotulo
+  from dias d
+  cross join vagas v
+  join origens o
+    on o.rotulo = (array['discord','whatsapp','google','linkedin','direto'])[
+         1 + ((v.posicao + extract(doy from d.dia)::int) % 5)
+       ]
+)
+insert into public.job_events (job_id, event_type, occurred_at, occurred_on, referrer, utm_source, visitor_hash)
+select
+  job_id,
+  'view'::public.event_type,
+  dia + time '13:00' + (n * interval '3 minutes'),
+  dia,
+  referrer,
+  utm,
+  -- Um hash por visita: o índice de dedup conta uma ação por visitante/dia.
+  encode(sha256(('seed-' || job_id::text || dia::text || n::text)::bytea), 'hex')
+from visitas;
+
+-- Cliques: uma fração das visitas, com divisor diferente por vaga para o CTR
+-- sair diferente de zero e diferente entre vagas. O primeiro byte do hash faz
+-- o papel do sorteio, sem depender de `random()` — o painel de dois resets
+-- seguidos precisa ser o mesmo.
+insert into public.job_events (job_id, event_type, occurred_at, occurred_on, referrer, utm_source, visitor_hash)
+select e.job_id, 'click_apply'::public.event_type, e.occurred_at + interval '2 minutes',
+       e.occurred_on, e.referrer, e.utm_source, e.visitor_hash
+  from public.job_events e
+  join (
+    select id, row_number() over (order by slug) as posicao
+      from public.jobs
+     where status = 'published'
+  ) v on v.id = e.job_id
+ where e.event_type = 'view'
+   and e.occurred_on < (now() at time zone 'utc')::date
+   and ('x' || substr(e.visitor_hash, 1, 2))::bit(8)::int % (3 + v.posicao) = 0;
+
+-- Agrega o que acabou de nascer: o painel lê `job_stats_daily`, não os eventos
+-- crus, e o cron do rollup só roda às 03:30 UTC.
+do $$
+declare
+  d date;
+begin
+  for d in
+    select distinct occurred_on from public.job_events order by 1
+  loop
+    perform public.rollup_job_stats(d);
+  end loop;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Usuários de desenvolvimento, um por papel
 -- ---------------------------------------------------------------------------
 --

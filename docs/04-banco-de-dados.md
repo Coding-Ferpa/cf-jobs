@@ -158,6 +158,7 @@ Estrutura comum: `id` uuid PK · `slug` text unique · `label` text · `aliases`
 | `archive_expired_jobs()` | function chamada por pg_cron | arquiva publicadas vencidas; retorna nº de linhas; chama `pg_net` → `/api/internal/revalidate` |
 | `rollup_job_stats(day date)` | function pg_cron | agrega job_events → job_stats_daily → atualiza counters em jobs |
 | `cleanup_imports()` | function pg_cron | apaga `raw_content` de imports com > 7 dias (economia de storage) |
+| `prune_job_events(retention_days int)` | function pg_cron | apaga eventos crus com mais de 90 dias **que já foram agregados** ([doc 09](09-analytics-observabilidade.md)); dia sem linha em `job_stats_daily` fica |
 | `check_rate_limit(key text, max int, window interval)` | function | rate limit genérico em Postgres ([doc 07](07-seguranca.md)) |
 
 ### Agendamentos pg_cron
@@ -167,6 +168,7 @@ Estrutura comum: `id` uuid PK · `slug` text unique · `label` text · `aliases`
 | `0 3 * * *` | `archive_expired_jobs()` |
 | `30 3 * * *` | `rollup_job_stats(yesterday)` |
 | `0 4 * * 0` | `cleanup_imports()` |
+| `15 4 * * 0` | `prune_job_events()` |
 | a cada 15 min (só após ativar MV) | `refresh materialized view concurrently mv_facet_counts` |
 
 ## RLS (resumo — política completa no [doc 07](07-seguranca.md))
@@ -184,7 +186,8 @@ RLS **habilitado em todas as tabelas**, service_role bypassa (usado só em Serve
 
 ## Migrations e Seeds
 
-- Migrations em `supabase/migrations/*.sql`, numeradas e ordenadas: `0001_extensions`, `0002_enums`, `0003_lookups`, `0004_companies_jobs`, `0005_imports_suggestions`, `0006_events_stats_audit`, `0007_functions_triggers`, `0008_rls`, `0009_cron`. Drizzle gera as DDL de tabelas; RLS/funções/cron são SQL manual **no mesmo diretório e mesma sequência** (uma única linha de verdade aplicada por `supabase db push` local e CI).
+- Migrations em `supabase/migrations/*.sql`, numeradas e ordenadas: `0001_extensions`, `0002_enums`, `0003_lookups`, `0004_companies_jobs`, `0005_imports_suggestions`, `0006_events_stats_audit`, `0007_functions_triggers`, `0008_rls`, `0009_cron`,
+`0010_rate_limit_headers`, `0011_prune_job_events`. Drizzle gera as DDL de tabelas; RLS/funções/cron são SQL manual **no mesmo diretório e mesma sequência** (uma única linha de verdade aplicada por `supabase db push` local e CI).
 - `supabase/seed.sql` pré-popula (com slugs estáveis e aliases):
   - **work_modes**: remoto, híbrido, presencial.
   - **contract_types**: CLT, PJ, freelancer, contractor (internacional), estágio.
