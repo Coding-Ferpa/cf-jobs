@@ -6,6 +6,13 @@
 
 export const LIMITE_DE_LEITURA = 60
 export const LIMITE_DE_EVENTOS = 20
+/**
+ * Importação por IA, por pessoa (doc 05). Não é defesa contra abuso — quem
+ * chega aqui já é editor — e sim o teto que mantém o consumo das duas chaves
+ * gratuitas do NIM (40 req/min cada) longe do limite, e o mesmo número que a
+ * importação em lote da Fase 2 vai respeitar.
+ */
+export const LIMITE_DE_IMPORTACAO = 5
 export const JANELA_EM_SEGUNDOS = 60
 
 export type ResultadoDeLimite = {
@@ -43,6 +50,9 @@ export function cabecalhosDeLimite(
  * consumam o mesmo saldo, e o identificador já chega hasheado — a tabela
  * `rate_limits` nunca vê IP em claro (doc 07).
  */
-export function chaveDeLimite(escopo: 'api' | 'events', identificador: string): string {
+export function chaveDeLimite(
+  escopo: 'api' | 'events' | 'import',
+  identificador: string,
+): string {
   return `${escopo}:${identificador}`
 }
