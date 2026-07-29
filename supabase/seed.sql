@@ -240,10 +240,16 @@ do $$
 declare
   admin_id uuid := '00000000-0000-4000-8000-000000000001';
 begin
+  -- As colunas de token precisam de string vazia: o serviço de auth lê todas
+  -- como texto não nulo e falha com "Database error querying schema" se vierem
+  -- NULL.
   insert into auth.users (
     instance_id, id, aud, role, email, encrypted_password,
     email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data
+    raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token,
+    email_change, email_change_token_new, email_change_token_current,
+    phone_change, phone_change_token, reauthentication_token
   ) values (
     '00000000-0000-0000-0000-000000000000',
     admin_id,
@@ -253,7 +259,8 @@ begin
     extensions.crypt('cfjobs-local', extensions.gen_salt('bf')),
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Admin Local"}'
+    '{"full_name":"Admin Local"}',
+    '', '', '', '', '', '', '', ''
   );
 
   insert into auth.identities (

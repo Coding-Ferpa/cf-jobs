@@ -54,6 +54,30 @@ describe('parseServerEnv', () => {
     expect(env.AI_MODEL_PRIMARY).toBe('nvidia/llama-3.1-nemotron-70b-instruct')
   })
 
+  it('trata variável em branco como não informada', () => {
+    // `AI_MODEL_PRIMARY=` no .env é o jeito documentado de pedir o padrão.
+    const env = parseServerEnv({
+      ...validServerEnv,
+      AI_MODEL_PRIMARY: '',
+      AI_MODEL_FALLBACK: '   ',
+      SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: '',
+    })
+
+    expect(env.AI_MODEL_PRIMARY).toBe('meta/llama-3.3-70b-instruct')
+    expect(env.AI_MODEL_FALLBACK).toBe('mistralai/mistral-small-24b-instruct')
+    expect(env.SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID).toBeUndefined()
+  })
+
+  it('mantém as credenciais do GitHub quando informadas', () => {
+    const env = parseServerEnv({
+      ...validServerEnv,
+      SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: 'client-id',
+      SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET: 'client-secret',
+    })
+
+    expect(env.SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID).toBe('client-id')
+  })
+
   it('recusa CRON_SECRET curto demais', () => {
     expect(() => parseServerEnv({ ...validServerEnv, CRON_SECRET: 'curto' })).toThrow(
       /CRON_SECRET/,

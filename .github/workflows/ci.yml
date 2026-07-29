@@ -112,8 +112,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Instala o Chromium do Playwright
         run: pnpm exec playwright install --with-deps chromium
+      # Login, papéis e guard do admin precisam de banco de verdade.
+      - name: Sobe o Supabase local
+        run: pnpm db:start
+      - name: Aponta o app para o Supabase local
+        run: |
+          # O comando também imprime linhas de status; só as VARIAVEL="valor" servem.
+          eval "$(pnpm exec supabase status -o env | grep -E '^[A-Z_]+=' | sed 's/^/export /')"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "DATABASE_URL=$DB_URL"
+            echo "DIRECT_URL=$DB_URL"
+            echo "NVIDIA_API_KEY=nao-usada-no-e2e"
+            echo "CRON_SECRET=segredo-de-teste-do-ci-cfjobs"
+          } >> "$GITHUB_ENV"
       # O build roda pelo webServer do playwright.config.ts.
       - run: pnpm test:e2e
+      - name: Derruba o Supabase
+        if: ${{ always() }}
+        run: pnpm db:stop
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

@@ -33,8 +33,24 @@ export const serverEnvSchema = z.object({
 export type ClientEnv = z.infer<typeof clientEnvSchema>
 export type ServerEnv = z.infer<typeof serverEnvSchema>
 
+/**
+ * `VARIAVEL=` em um arquivo .env significa "não informei", não "informei
+ * vazio" — sem isso, deixar em branco uma variável com valor padrão ou
+ * opcional quebraria a validação em vez de acionar o padrão.
+ */
+function semVazios(source: unknown): unknown {
+  if (typeof source !== 'object' || source === null) return source
+
+  return Object.fromEntries(
+    Object.entries(source as Record<string, unknown>).map(([chave, valor]) => [
+      chave,
+      typeof valor === 'string' && valor.trim() === '' ? undefined : valor,
+    ]),
+  )
+}
+
 function parse<T extends z.ZodType>(schema: T, source: unknown, scope: string) {
-  const result = schema.safeParse(source)
+  const result = schema.safeParse(semVazios(source))
   if (result.success) return result.data as z.infer<T>
 
   const details = result.error.issues
