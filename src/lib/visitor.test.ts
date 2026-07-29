@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ipDaRequisicao, visitorHash } from '@/lib/visitor'
+import { ipDaRequisicao, ipHash, visitorHash } from '@/lib/visitor'
 
 const BASE = {
   ip: '203.0.113.10',
@@ -38,6 +38,27 @@ describe('visitorHash', () => {
 
     expect(hash).not.toContain('203.0.113.10')
     expect(hash).toMatch(/^[a-f0-9]{64}$/)
+  })
+})
+
+describe('ipHash', () => {
+  it('não guarda o IP em claro', () => {
+    const hash = ipHash('203.0.113.7', 'sal-de-teste')
+
+    expect(hash).not.toContain('203.0.113.7')
+    expect(hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('é estável para o mesmo IP — o balde não pode zerar sozinho', () => {
+    expect(ipHash('203.0.113.7', 'sal')).toBe(ipHash('203.0.113.7', 'sal'))
+  })
+
+  it('separa IPs diferentes', () => {
+    expect(ipHash('203.0.113.7', 'sal')).not.toBe(ipHash('203.0.113.8', 'sal'))
+  })
+
+  it('muda com o sal, para um dump do banco não ser reversível por força bruta', () => {
+    expect(ipHash('203.0.113.7', 'sal-a')).not.toBe(ipHash('203.0.113.7', 'sal-b'))
   })
 })
 

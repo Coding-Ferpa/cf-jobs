@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   entradaInvalida,
   erroInterno,
+  indisponivel,
   limiteExcedido,
   naoAutorizado,
   naoEncontrado,
   problema,
+  proibido,
   TIPO_DE_CONTEUDO,
   type ProblemDetails,
 } from './problem'
@@ -57,8 +59,10 @@ describe('problema', () => {
   it('usa o status certo em cada atalho', () => {
     expect(entradaInvalida('/i', 'x').status).toBe(400)
     expect(naoAutorizado('/i').status).toBe(401)
+    expect(proibido('/i', 'x').status).toBe(403)
     expect(naoEncontrado('/i', 'x').status).toBe(404)
     expect(erroInterno('/i').status).toBe(500)
+    expect(indisponivel('/i', 'x').status).toBe(503)
   })
 
   it('não vaza detalhe interno no 500', async () => {

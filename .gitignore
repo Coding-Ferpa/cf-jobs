@@ -37,3 +37,6 @@ Thumbs.db
 .turbo
 tsconfig.tsbuildinfo
 /public/scalar/
+
+# Relatórios do Lighthouse CI (gerados por `lhci autorun`).
+.lighthouseci/
