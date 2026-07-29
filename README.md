@@ -35,12 +35,18 @@ pnpm dev
 
 `pnpm db:start` sobe o Postgres local, aplica as migrations e carrega as taxonomias do seed; ele imprime a `DATABASE_URL` e as chaves para preencher o `.env`. Abra <http://localhost:3000>.
 
-Admin de desenvolvimento (existe apenas no seed local): `admin@cfjobs.local` / `cfjobs-local`.
+Contas de desenvolvimento, uma por papel (existem apenas no seed local, senha `cfjobs-local`): `admin@cfjobs.local`, `editor@cfjobs.local`, `moderator@cfjobs.local`, `reader@cfjobs.local`.
 
 Bateria de qualidade:
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test
+```
+
+Os testes de integração precisam do Supabase local no ar (`pnpm db:start`):
+
+```bash
+pnpm test:integration
 ```
 
 ## API pública

@@ -438,52 +438,71 @@ cross join lateral unnest(string_to_array(e.tag_slugs, ',')) as tag(slug)
 join public.tags t on t.slug = tag.slug;
 
 -- ---------------------------------------------------------------------------
--- Usuário administrador de desenvolvimento
+-- Usuários de desenvolvimento, um por papel
 -- ---------------------------------------------------------------------------
 --
--- Existe apenas aqui, e este arquivo só roda em `supabase db reset` (local e
+-- Existem apenas aqui, e este arquivo só roda em `supabase db reset` (local e
 -- CI) — nunca em produção, onde papéis são promovidos manualmente por um admin.
--- Credenciais: admin@cfjobs.local / cfjobs-local
+--
+-- Senha de todos: cfjobs-local
+--   admin@cfjobs.local · editor@cfjobs.local · moderator@cfjobs.local ·
+--   reader@cfjobs.local
+--
+-- Um por papel porque a matriz de autorização do doc 07 só é testável de
+-- verdade com sessão de verdade: os testes de integração das Server Actions
+-- entram pelo mesmo login de senha que uma pessoa usaria.
 
 do $$
 declare
-  admin_id uuid := '00000000-0000-4000-8000-000000000001';
+  pessoa record;
 begin
-  -- As colunas de token precisam de string vazia: o serviço de auth lê todas
-  -- como texto não nulo e falha com "Database error querying schema" se vierem
-  -- NULL.
-  insert into auth.users (
-    instance_id, id, aud, role, email, encrypted_password,
-    email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data,
-    confirmation_token, recovery_token,
-    email_change, email_change_token_new, email_change_token_current,
-    phone_change, phone_change_token, reauthentication_token
-  ) values (
-    '00000000-0000-0000-0000-000000000000',
-    admin_id,
-    'authenticated',
-    'authenticated',
-    'admin@cfjobs.local',
-    extensions.crypt('cfjobs-local', extensions.gen_salt('bf')),
-    now(), now(), now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Admin Local"}',
-    '', '', '', '', '', '', '', ''
-  );
+  for pessoa in
+    select *
+      from (values
+        ('00000000-0000-4000-8000-000000000001'::uuid, 'admin@cfjobs.local', 'Admin Local', 'admin'),
+        ('00000000-0000-4000-8000-000000000002'::uuid, 'editor@cfjobs.local', 'Editor Local', 'editor'),
+        ('00000000-0000-4000-8000-000000000003'::uuid, 'moderator@cfjobs.local', 'Moderação Local', 'moderator'),
+        ('00000000-0000-4000-8000-000000000004'::uuid, 'reader@cfjobs.local', 'Leitor Local', 'reader')
+      ) as t(id, email, nome, papel)
+  loop
+    -- As colunas de token precisam de string vazia: o serviço de auth lê todas
+    -- como texto não nulo e falha com "Database error querying schema" se
+    -- vierem NULL.
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, created_at, updated_at,
+      raw_app_meta_data, raw_user_meta_data,
+      confirmation_token, recovery_token,
+      email_change, email_change_token_new, email_change_token_current,
+      phone_change, phone_change_token, reauthentication_token
+    ) values (
+      '00000000-0000-0000-0000-000000000000',
+      pessoa.id,
+      'authenticated',
+      'authenticated',
+      pessoa.email,
+      extensions.crypt('cfjobs-local', extensions.gen_salt('bf')),
+      now(), now(), now(),
+      '{"provider":"email","providers":["email"]}',
+      jsonb_build_object('full_name', pessoa.nome),
+      '', '', '', '', '', '', '', ''
+    );
 
-  insert into auth.identities (
-    provider_id, user_id, identity_data, provider,
-    last_sign_in_at, created_at, updated_at
-  ) values (
-    admin_id::text,
-    admin_id,
-    jsonb_build_object('sub', admin_id::text, 'email', 'admin@cfjobs.local'),
-    'email',
-    now(), now(), now()
-  );
+    insert into auth.identities (
+      provider_id, user_id, identity_data, provider,
+      last_sign_in_at, created_at, updated_at
+    ) values (
+      pessoa.id::text,
+      pessoa.id,
+      jsonb_build_object('sub', pessoa.id::text, 'email', pessoa.email),
+      'email',
+      now(), now(), now()
+    );
 
-  -- O trigger handle_new_user() criou o perfil como `reader`.
-  update public.profiles set role = 'admin' where id = admin_id;
+    -- O trigger handle_new_user() criou o perfil como `reader`.
+    update public.profiles
+       set role = pessoa.papel::public.user_role
+     where id = pessoa.id;
+  end loop;
 end;
 $$;

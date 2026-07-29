@@ -30,7 +30,8 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "prepare": "husky",
-    "copy:scalar": "tsx scripts/copy-scalar.ts"
+    "copy:scalar": "tsx scripts/copy-scalar.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",

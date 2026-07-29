@@ -23,7 +23,7 @@ pnpm dev
 
 O `pnpm db:start` imprime `DB_URL`, `API_URL` e as chaves do projeto local — use esses valores no `.env`. O app sobe em <http://localhost:3000>.
 
-Para desenvolvimento existe um admin criado pelo seed: **admin@cfjobs.local** / **cfjobs-local**. Ele só existe no banco local, nunca em produção.
+O seed cria uma conta por papel, todas com a senha **cfjobs-local**: **admin@cfjobs.local**, **editor@cfjobs.local**, **moderator@cfjobs.local** e **reader@cfjobs.local**. Servem para conferir a matriz de autorização à mão e são as mesmas que os testes de integração usam. Existem apenas no banco local, nunca em produção.
 
 ## Fluxo de trabalho
 
@@ -35,20 +35,21 @@ Para desenvolvimento existe um admin criado pelo seed: **admin@cfjobs.local** / 
 
 ## Comandos do dia a dia
 
-| Comando              | O que faz                                       |
-| -------------------- | ----------------------------------------------- |
-| `pnpm dev`           | Sobe o app em desenvolvimento                   |
-| `pnpm lint`          | ESLint (falha com qualquer aviso)               |
-| `pnpm format`        | Formata com Prettier                            |
-| `pnpm typecheck`     | Checagem de tipos sem emitir arquivos           |
-| `pnpm test`          | Testes unitários (Vitest)                       |
-| `pnpm test:coverage` | Testes com cobertura e limites do doc 12        |
-| `pnpm test:e2e`      | Testes de ponta a ponta (Playwright)            |
-| `pnpm db:start`      | Sobe o Supabase local (`pnpm db:stop` derruba)  |
-| `pnpm db:reset`      | Recria o banco: migrations do zero + seed       |
-| `pnpm db:test`       | Policies e funções do banco (pgTAP)             |
-| `pnpm check:env`     | Confere se `.env.example` cobre o schema de env |
-| `pnpm check:schema`  | Confere se o schema Drizzle espelha o banco     |
+| Comando                 | O que faz                                       |
+| ----------------------- | ----------------------------------------------- |
+| `pnpm dev`              | Sobe o app em desenvolvimento                   |
+| `pnpm lint`             | ESLint (falha com qualquer aviso)               |
+| `pnpm format`           | Formata com Prettier                            |
+| `pnpm typecheck`        | Checagem de tipos sem emitir arquivos           |
+| `pnpm test`             | Testes unitários (Vitest)                       |
+| `pnpm test:coverage`    | Testes com cobertura e limites do doc 12        |
+| `pnpm test:e2e`         | Testes de ponta a ponta (Playwright)            |
+| `pnpm test:integration` | API v1 e Server Actions contra o Supabase local |
+| `pnpm db:start`         | Sobe o Supabase local (`pnpm db:stop` derruba)  |
+| `pnpm db:reset`         | Recria o banco: migrations do zero + seed       |
+| `pnpm db:test`          | Policies e funções do banco (pgTAP)             |
+| `pnpm check:env`        | Confere se `.env.example` cobre o schema de env |
+| `pnpm check:schema`     | Confere se o schema Drizzle espelha o banco     |
 
 Antes de abrir o PR:
 

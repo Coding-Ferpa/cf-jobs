@@ -93,6 +93,23 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm check:schema
+      - name: Aponta o app para o Supabase local
+        run: |
+          eval "$(pnpm exec supabase status -o env | grep -E '^[A-Z_]+=' | sed 's/^/export /')"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "DATABASE_URL=$DB_URL"
+            echo "DIRECT_URL=$DB_URL"
+            echo "CRON_SECRET=segredo-de-teste-do-ci-cfjobs"
+            echo "ANALYTICS_SALT=sal-de-teste-do-ci-cfjobs"
+          } >> "$GITHUB_ENV"
+      # API v1 e Server Actions contra banco de verdade, com sessão real por
+      # papel (doc 12).
+      - name: Testes de integração
+        run: pnpm test:integration
       - name: Derruba o Supabase
         if: ${{ always() }}
         run: pnpm db:stop
