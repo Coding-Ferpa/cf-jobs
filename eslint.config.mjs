@@ -45,11 +45,30 @@ export default tseslint.config(
     },
   },
 
+  // Dois objetos, e não um só com os dois espalhados: `jsx-runtime` também tem
+  // a chave `rules`, e espalhar os dois no mesmo objeto fazia a segunda
+  // sobrescrever a primeira — todas as regras recomendadas do plugin react
+  // ficavam desligadas em silêncio, `jsx-key` inclusive.
   {
     files: ['**/*.{jsx,tsx}'],
     ...react.configs.flat.recommended,
-    ...react.configs.flat['jsx-runtime'],
     settings: { react: { version: 'detect' } },
+  },
+  {
+    files: ['**/*.{jsx,tsx}'],
+    ...react.configs.flat['jsx-runtime'],
+  },
+  {
+    files: ['**/*.{jsx,tsx}'],
+    rules: {
+      // A regra quer `noreferrer` junto de `target="_blank"`, por causa de
+      // navegador antigo sem `noopener`. Os docs 07 e 08 pedem
+      // `rel="noopener nofollow"` no CTA de candidatura de propósito:
+      // `noreferrer` também apaga o Referer, e é por ele que a empresa vê que
+      // a candidatura veio do CF Jobs (doc 09). `noopener` está em todos os
+      // links e resolve o risco em qualquer navegador atual.
+      'react/jsx-no-target-blank': ['error', { allowReferrer: true }],
+    },
   },
   {
     files: ['**/*.{jsx,tsx}'],
