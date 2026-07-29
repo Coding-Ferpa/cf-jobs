@@ -32,13 +32,25 @@ export function JobSearch() {
   }, [texto, setFiltros])
 
   return (
-    <search className="w-full">
+    <search className="relative min-w-0 flex-1">
       <label className="sr-only" htmlFor="busca">
         Buscar vagas
       </label>
+      <svg
+        aria-hidden="true"
+        className="text-muted-foreground pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
       <input
         autoComplete="off"
-        className="border-border bg-surface text-body focus-visible:border-primary w-full rounded-full border px-6 py-3 transition duration-150"
+        className="border-border bg-surface text-body focus-visible:border-primary w-full rounded-full border py-3 pr-6 pl-12 transition duration-150"
         id="busca"
         name="q"
         onChange={(evento) => setTexto(evento.target.value)}

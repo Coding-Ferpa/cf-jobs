@@ -13,6 +13,12 @@ async function contarCards(page: Page) {
   return page.locator('a[href^="/vagas/"]').count()
 }
 
+/** Botão de funil e painel de filtros que ele abre (doc 03). */
+const botaoDeFiltros = (page: Page) => page.locator('details > summary')
+const painelDeFiltros = (page: Page) => page.locator('details > div')
+const opcaoDeFiltro = (page: Page, rotulo: string | RegExp) =>
+  page.getByRole('checkbox', { name: rotulo })
+
 test.describe('busca e filtros', () => {
   test('visitante busca, filtra, abre a vaga e se candidata', async ({
     page,
@@ -29,11 +35,18 @@ test.describe('busca e filtros', () => {
     await expect(page).toHaveURL(/q=react/, { timeout: 5000 })
     await expect(page.getByRole('link', { name: /Frontend/ })).toBeVisible()
 
-    // Filtrar estreita e some com o resultado anterior.
-    await page.goto('/?work_mode=remoto&seniority=pleno')
-    const filtradas = await contarCards(page)
-    expect(filtradas).toBeGreaterThan(0)
-    expect(filtradas).toBeLessThan(12)
+    // Filtrar pelo painel: abre o funil, marca remoto e pleno.
+    await page.goto('/')
+    await botaoDeFiltros(page).click()
+    await opcaoDeFiltro(page, /^Remoto/).check()
+    await expect(page).toHaveURL(/work_mode=remoto/)
+    await opcaoDeFiltro(page, /^Pleno/).check()
+    await expect(page).toHaveURL(/seniority=pleno/)
+
+    // A URL muda antes de a listagem re-renderizar no servidor: esperar a
+    // grade encolher é o sinal de que o filtro chegou de fato aos resultados.
+    await expect.poll(() => contarCards(page)).toBeLessThan(12)
+    expect(await contarCards(page)).toBeGreaterThan(0)
 
     await page.goto(`/vagas/${VAGA_PUBLICADA}`)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(
@@ -73,6 +86,75 @@ test.describe('busca e filtros', () => {
     await page.goto(`/vagas/${VAGA_PUBLICADA}`)
     await expect.poll(() => eventos.length, { timeout: 5000 }).toBeGreaterThan(0)
     expect(eventos[0]).toBe('POST')
+  })
+
+  test('o painel abre pelo funil e Esc fecha devolvendo o foco', async ({ page }) => {
+    await page.goto('/')
+
+    const botao = botaoDeFiltros(page)
+    const painel = painelDeFiltros(page)
+
+    await expect(painel).toBeHidden()
+    await botao.click()
+    await expect(painel).toBeVisible()
+    await expect(painel).toBeFocused()
+
+    await page.keyboard.press('Escape')
+    await expect(painel).toBeHidden()
+    await expect(botao).toBeFocused()
+  })
+
+  test('clicar fora fecha o painel', async ({ page, isMobile }) => {
+    // No mobile o painel é de tela cheia: não existe "fora" para clicar, o
+    // caminho de saída é o botão Fechar — coberto no teste seguinte.
+    test.skip(isMobile, 'o painel ocupa a tela inteira no mobile')
+
+    await page.goto('/')
+    await botaoDeFiltros(page).click()
+    await expect(painelDeFiltros(page)).toBeVisible()
+
+    await page.getByRole('heading', { level: 1 }).click()
+    await expect(painelDeFiltros(page)).toBeHidden()
+  })
+
+  test('no mobile o painel cobre a tela e fecha pelos próprios botões', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'o painel só é de tela cheia abaixo de 640px')
+
+    await page.goto('/')
+    await botaoDeFiltros(page).click()
+
+    const painel = painelDeFiltros(page)
+    await expect(painel).toBeVisible()
+
+    const caixa = await painel.boundingBox()
+    const viewport = page.viewportSize()
+    expect(caixa?.width).toBe(viewport?.width)
+
+    await page.getByRole('button', { name: 'Ver vagas' }).click()
+    await expect(painel).toBeHidden()
+
+    await botaoDeFiltros(page).click()
+    await page.getByRole('button', { name: 'Fechar' }).click()
+    await expect(painel).toBeHidden()
+  })
+
+  test('o badge do funil conta os filtros aplicados', async ({ page }) => {
+    await page.goto('/')
+    const botao = botaoDeFiltros(page)
+    await expect(botao).toHaveText('Filtros')
+
+    await page.goto('/?tech=react,typescript&work_mode=remoto')
+    await expect(botao).toContainText('3')
+    // O que está aplicado aparece fora do painel, sem precisar abri-lo.
+    await expect(painelDeFiltros(page)).toBeHidden()
+    await expect(page.getByRole('button', { name: /remover filtro/ })).toHaveCount(3)
+
+    await page.getByRole('button', { name: 'Limpar tudo' }).click()
+    await expect(botao).toHaveText('Filtros')
+    await expect(page.getByRole('button', { name: /remover filtro/ })).toHaveCount(0)
   })
 
   test('filtro sem resultado mostra o estado vazio', async ({ page }) => {
@@ -176,6 +258,25 @@ test.describe('SEO', () => {
 })
 
 test.describe('acessibilidade', () => {
+  async function violacoesGraves(page: Page) {
+    const resultado = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze()
+
+    return resultado.violations.filter((violacao) =>
+      ['serious', 'critical'].includes(violacao.impact ?? ''),
+    )
+  }
+
+  const detalhar = (graves: Awaited<ReturnType<typeof violacoesGraves>>) => ({
+    resumo: graves.map((v) => `${v.id}: ${v.nodes.length} ocorrência(s)`),
+    contexto: JSON.stringify(
+      graves.map((v) => ({ id: v.id, help: v.help })),
+      null,
+      2,
+    ),
+  })
+
   const paginas = [
     { nome: 'home', url: '/' },
     { nome: 'vaga', url: `/vagas/${VAGA_PUBLICADA}` },
@@ -186,22 +287,19 @@ test.describe('acessibilidade', () => {
     test(`sem violações sérias em ${pagina.nome}`, async ({ page }) => {
       await page.goto(pagina.url)
 
-      const resultado = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-        .analyze()
-
-      const graves = resultado.violations.filter((violacao) =>
-        ['serious', 'critical'].includes(violacao.impact ?? ''),
-      )
-
-      expect(
-        graves.map((v) => `${v.id}: ${v.nodes.length} ocorrência(s)`),
-        JSON.stringify(
-          graves.map((v) => ({ id: v.id, help: v.help })),
-          null,
-          2,
-        ),
-      ).toEqual([])
+      const { resumo, contexto } = detalhar(await violacoesGraves(page))
+      expect(resumo, contexto).toEqual([])
     })
   }
+
+  // O conteúdo de um <details> fechado sai da árvore de acessibilidade: sem
+  // abrir o painel, o axe nunca veria os grupos de filtro.
+  test('sem violações sérias com o painel de filtros aberto', async ({ page }) => {
+    await page.goto('/')
+    await botaoDeFiltros(page).click()
+    await expect(painelDeFiltros(page)).toBeVisible()
+
+    const { resumo, contexto } = detalhar(await violacoesGraves(page))
+    expect(resumo, contexto).toEqual([])
+  })
 })

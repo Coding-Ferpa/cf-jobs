@@ -4,10 +4,10 @@ import type { SearchParams } from 'nuqs/server'
 
 import { ActiveFilters } from '@/components/jobs/active-filters'
 import { JobCard } from '@/components/jobs/job-card'
-import { JobFilters } from '@/components/jobs/job-filters'
+import { JobFiltersPanel } from '@/components/jobs/job-filters-panel'
 import { JobSearch } from '@/components/jobs/job-search'
 import { getFacets, listJobs, type JobFilters as Filtros } from '@/db/queries/jobs'
-import { contarFiltrosAtivos, loadFiltros } from '@/lib/search-params'
+import { loadFiltros } from '@/lib/search-params'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -64,7 +64,6 @@ export default async function HomePage({
     cursor: filtros.cursor,
   })
 
-  const totalDeFiltros = contarFiltrosAtivos(filtros)
   const hrefSeguinte = lista.nextCursor
     ? paginaSeguinte(
         parametros as Record<string, string | string[] | undefined>,
@@ -84,80 +83,63 @@ export default async function HomePage({
         <p className="text-body text-muted-foreground">
           Curadas pela comunidade Coding Ferpa.
         </p>
-        <div className="w-full max-w-2xl">
-          <JobSearch />
+
+        {/* Busca e filtros na mesma linha; os chips do que está aplicado ficam
+            logo abaixo, para o estado nunca se esconder atrás do funil. */}
+        <div className="flex w-full max-w-3xl flex-col gap-3">
+          <div className="flex items-stretch gap-3">
+            <JobSearch />
+            <JobFiltersPanel facetas={facetas} />
+          </div>
+          <ActiveFilters facetas={facetas} />
         </div>
       </section>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
-        {/* Desktop: coluna fixa. Mobile: disclosure nativo, sem JS extra. */}
-        <aside className="lg:w-[280px] lg:shrink-0">
-          <details
-            className="border-border rounded-md border p-4 lg:hidden"
-            name="filtros"
-          >
-            <summary className="text-caption cursor-pointer font-semibold">
-              Filtrar{totalDeFiltros > 0 ? ` (${totalDeFiltros})` : ''}
-            </summary>
-            <div className="mt-4">
-              <JobFilters facetas={facetas} />
-            </div>
-          </details>
+      <section
+        aria-labelledby="titulo-resultados"
+        className="flex min-w-0 flex-col gap-5"
+      >
+        {/* Sem este h2 a hierarquia pula de h1 para o h3 dos cards. */}
+        <h2 className="sr-only" id="titulo-resultados">
+          Vagas encontradas
+        </h2>
 
-          <div className="hidden lg:block">
-            <h2 className="text-caption mb-4 font-semibold">Filtros</h2>
-            <JobFilters facetas={facetas} />
-          </div>
-        </aside>
+        <p aria-live="polite" className="text-caption text-muted-foreground">
+          {lista.jobs.length === 0
+            ? 'Nenhuma vaga encontrada'
+            : `${lista.jobs.length} ${lista.jobs.length === 1 ? 'vaga' : 'vagas'} nesta página`}
+        </p>
 
-        <section
-          aria-labelledby="titulo-resultados"
-          className="flex min-w-0 flex-1 flex-col gap-5"
-        >
-          {/* Sem este h2 a hierarquia pula de h1 para o h3 dos cards. */}
-          <h2 className="sr-only" id="titulo-resultados">
-            Vagas encontradas
-          </h2>
-
-          <div className="flex flex-col gap-3">
-            <ActiveFilters facetas={facetas} />
-            <p aria-live="polite" className="text-caption text-muted-foreground">
-              {lista.jobs.length === 0
-                ? 'Nenhuma vaga encontrada'
-                : `${lista.jobs.length} ${lista.jobs.length === 1 ? 'vaga' : 'vagas'} nesta página`}
+        {lista.jobs.length === 0 ? (
+          <div className="border-border rounded-md border border-dashed p-10 text-center">
+            <p className="text-body">Nenhuma vaga por aqui… ainda.</p>
+            <p className="text-muted-foreground text-caption mt-2">
+              Tente remover alguns filtros.
             </p>
           </div>
+        ) : (
+          // Sem a sidebar, a grade ganha a largura inteira do container.
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {lista.jobs.map((job) => (
+              <li className="flex" key={job.slug}>
+                <div className="flex w-full">
+                  <JobCard job={job} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
 
-          {lista.jobs.length === 0 ? (
-            <div className="border-border rounded-md border border-dashed p-10 text-center">
-              <p className="text-body">Nenhuma vaga por aqui… ainda.</p>
-              <p className="text-muted-foreground text-caption mt-2">
-                Tente remover alguns filtros.
-              </p>
-            </div>
-          ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {lista.jobs.map((job) => (
-                <li className="flex" key={job.slug}>
-                  <div className="flex w-full">
-                    <JobCard job={job} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {hrefSeguinte ? (
-            <a
-              className="border-border hover:border-primary-muted mx-auto rounded-full border px-8 py-2.5 font-semibold transition duration-150"
-              href={hrefSeguinte}
-              rel="next"
-            >
-              Carregar mais
-            </a>
-          ) : null}
-        </section>
-      </div>
+        {hrefSeguinte ? (
+          <a
+            className="border-border hover:border-primary-muted mx-auto rounded-full border px-8 py-2.5 font-semibold transition duration-150"
+            href={hrefSeguinte}
+            rel="next"
+          >
+            Carregar mais
+          </a>
+        ) : null}
+      </section>
     </div>
   )
 }
