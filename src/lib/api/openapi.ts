@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 import { createDocument } from 'zod-openapi'
 
 import { LIMITE_MAXIMO, LIMITE_PADRAO } from '@/lib/cursor'

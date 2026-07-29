@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 /**
  * Corpo das respostas da API v1 (doc 06), em Zod.

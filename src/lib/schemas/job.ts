@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 /**
  * Schemas do CRUD de vagas (doc 06). Vivem em `lib` e não junto das actions

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 /**
  * Cursor opaco de paginação (doc 06): base64 de `(published_at, id)`.

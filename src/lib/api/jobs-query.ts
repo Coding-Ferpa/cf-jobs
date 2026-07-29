@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 import type { JobFilters } from '@/db/queries/jobs'
 import { LIMITE_MAXIMO, LIMITE_PADRAO } from '@/lib/cursor'
@@ -38,12 +38,6 @@ const texto = (maximo: number) =>
     .max(maximo, `deve ter no máximo ${maximo} caracteres.`)
     .optional()
 
-// O genérico existe para o tipo de saída continuar sendo a união de literais
-// (`'published' | 'archived' | 'all'`) em vez de `string`: é o que faz o
-// TypeScript recusar um valor inventado ao montar o filtro do banco.
-const lista = <T extends readonly [string, ...string[]]>(valores: T) =>
-  z.enum(valores, { error: `aceita apenas ${valores.join(', ')}.` })
-
 export const STATUS = ['published', 'archived', 'all'] as const
 export const ORDENACOES = ['recent', 'relevance'] as const
 
@@ -63,8 +57,10 @@ export const consultaDeVagas = z.object({
     .trim()
     .length(2, 'deve ser o código ISO de duas letras do país, como BR.')
     .optional(),
-  status: lista(STATUS).default('published'),
-  sort: lista(ORDENACOES).default('recent'),
+  // Sem mensagem própria: o locale pt-BR já enumera as opções aceitas, que é
+  // exatamente o que uma mensagem manual diria aqui (doc 02).
+  status: z.enum(STATUS).default('published'),
+  sort: z.enum(ORDENACOES).default('recent'),
   cursor: z.string().max(500, 'não parece um cursor desta API.').optional(),
   // Passar do teto é erro, não pedido para arredondar: quem pediu 200 precisa
   // saber que recebeu 50, e um 400 conta isso melhor que um silêncio.

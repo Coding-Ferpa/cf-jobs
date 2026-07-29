@@ -26,6 +26,28 @@ export default tseslint.config(
   js.configs.recommended,
   tseslint.configs.recommended,
 
+  // O `z` do projeto vem com o locale pt-BR aplicado; importar `zod` direto
+  // devolve uma instância sem ele, e as mensagens voltam a sair em inglês sem
+  // ninguém perceber (ADR-0016).
+  {
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['src/lib/zod.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'zod',
+              message:
+                "Importe `z` de '@/lib/zod' — é a instância com o locale pt-BR (ADR-0016).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   {
     files: ['**/*.{ts,tsx,js,mjs}'],
     languageOptions: {

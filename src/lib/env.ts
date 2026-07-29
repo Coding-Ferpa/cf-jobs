@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 /**
  * Contrato de variáveis de ambiente (doc 01). `.env.example` precisa listar

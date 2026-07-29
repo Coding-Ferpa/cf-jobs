@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 import { actionError, type ActionResult } from '@/actions/result'
 import { isGithubOAuthEnabled } from '@/lib/env'

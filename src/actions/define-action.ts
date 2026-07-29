@@ -2,7 +2,7 @@ import 'server-only'
 
 import { updateTag } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 import { db, type Transaction } from '@/db/client'
 import { auditLogs } from '@/db/schema'

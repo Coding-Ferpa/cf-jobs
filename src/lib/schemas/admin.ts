@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '@/lib/zod'
 
 import { USER_ROLES } from '@/lib/roles'
 
