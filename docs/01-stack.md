@@ -90,7 +90,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 ## IA: NVIDIA NIM — como será consumido
 
 - Endpoint OpenAI-compatível: `https://integrate.api.nvidia.com/v1/chat/completions` com `NVIDIA_API_KEY`.
-- Consumido via **Vercel AI SDK** com provider OpenAI-compatible (`createOpenAICompatible`): troca de modelo/provedor vira configuração; retries e streaming resolvidos pela SDK.
+- Consumido via **Vercel AI SDK** com provider OpenAI-compatible (`createOpenAICompatible`), usada como **camada de protocolo**: tipagem, troca de modelo por configuração e `providerOptions` por onde o `nvext` passa. A orquestração de resiliência — retries, cascata de modelos, rodízio de chaves e espera longa — é do projeto (`maxRetries: 0` na SDK), porque o doc 05 exige comportamento específico que a SDK não modela (ressalva registrada no checkpoint do M6).
 - Modelo primário: `meta/llama-3.3-70b-instruct` (custo/qualidade excelente para extração estruturada, contexto 128k). Fallback: `mistralai/mistral-small-24b-instruct` (mais barato/rápido) e, para casos difíceis, `nvidia/llama-3.1-nemotron-70b-instruct`.
 - Saída estruturada: `nvext.guided_json` (recurso NIM de decoding guiado por JSON Schema) quando disponível + validação Zod sempre. Detalhes no [doc 05](05-pipeline-ia.md).
 
