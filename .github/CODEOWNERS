@@ -1,0 +1,12 @@
+# Pessoas mantenedoras notificadas automaticamente em cada PR.
+# Ajuste para os handles/times reais do GitHub antes de habilitar a
+# proteção de branch que exige revisão de code owner.
+
+* @Coding-Ferpa/mantenedores
+
+# Mudanças de arquitetura e segurança exigem atenção redobrada.
+/docs/                      @Coding-Ferpa/mantenedores
+/supabase/migrations/       @Coding-Ferpa/mantenedores
+/src/features/import/       @Coding-Ferpa/mantenedores
+/src/lib/security-headers.ts @Coding-Ferpa/mantenedores
+/.github/workflows/         @Coding-Ferpa/mantenedores
