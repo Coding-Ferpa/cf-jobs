@@ -1,0 +1,19 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Mantém um PR de release aberto agregando os Conventional Commits; o merge
+# gera tag semver, CHANGELOG.md e GitHub Release (doc 11). Sem publicação npm.
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          release-type: node

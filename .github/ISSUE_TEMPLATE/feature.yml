@@ -1,0 +1,34 @@
+name: ✨ Melhoria ou nova funcionalidade
+description: Sugira algo que tornaria o CF Jobs mais útil
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: Comece pelo problema — a solução aparece melhor depois que ele está claro.
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema você quer resolver
+      description: Quem sente essa dor e em que momento?
+      placeholder: 'Quando filtro por várias tecnologias, não consigo compartilhar o resultado com alguém.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Como você imagina a solução
+      description: Opcional. Se não souber, tudo bem — a discussão resolve.
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas que você considerou
+
+  - type: checkboxes
+    id: contribuir
+    attributes:
+      label: Participação
+      options:
+        - label: Tenho interesse em implementar isso

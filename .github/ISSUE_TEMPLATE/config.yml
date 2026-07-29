@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Dúvida ou conversa
+    url: https://codingferpa.org/
+    about: Perguntas sobre uso, setup ou ideias soltas são melhores nos canais da comunidade.
+  - name: 🔒 Vulnerabilidade de segurança
+    url: https://github.com/Coding-Ferpa/cf-jobs/security/advisories/new
+    about: Relate em privado — nunca em issue pública.

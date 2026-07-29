@@ -1,0 +1,54 @@
+name: 🐛 Bug
+description: Algo não funciona como deveria
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Obrigado por reportar! Quanto mais concreto, mais rápido a gente corrige.
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Como reproduzir
+      description: Passo a passo do que você fez.
+      placeholder: |
+        1. Abri a home
+        2. Filtrei por "remoto"
+        3. Cliquei em "carregar mais"
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que você esperava que acontecesse
+    validations:
+      required: true
+
+  - type: textarea
+    id: observado
+    attributes:
+      label: O que aconteceu de fato
+      description: Cole a mensagem de erro, se houver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: prints
+    attributes:
+      label: Prints ou vídeo
+      description: Arraste as imagens para cá. Opcional, mas ajuda muito.
+
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      placeholder: 'Chrome 140 no Windows 11 / celular Android'
+
+  - type: checkboxes
+    id: checagem
+    attributes:
+      label: Antes de enviar
+      options:
+        - label: Procurei por uma issue parecida e não encontrei
+          required: true

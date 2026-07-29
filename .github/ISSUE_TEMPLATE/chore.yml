@@ -1,0 +1,25 @@
+name: 🧹 Manutenção
+description: Dívida técnica, atualização de dependência, documentação ou limpeza
+labels: ['chore']
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: O que precisa ser feito
+      placeholder: 'A documentação do setup não menciona o Node 22 como requisito.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Por que isso importa
+      description: Qual o custo de deixar como está?
+    validations:
+      required: true
+
+  - type: input
+    id: arquivos
+    attributes:
+      label: Arquivos ou áreas envolvidas
+      placeholder: 'README.md, CONTRIBUTING.md'
