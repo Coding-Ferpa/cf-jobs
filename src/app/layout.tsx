@@ -21,7 +21,10 @@ const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-jetbrains-mono',
-  display: 'swap',
+  // Mesmo motivo da Poppins: os chips de tecnologia do JobCard reembalavam
+  // quando a mono chegava, empurrando o rodapé do card — era a única origem
+  // de layout shift que sobrava na home.
+  display: 'optional',
 })
 
 export const metadata: Metadata = {
