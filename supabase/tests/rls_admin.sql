@@ -9,10 +9,12 @@ select plan(22);
 -- Fixtures
 -- ---------------------------------------------------------------------------
 
--- Cenário conhecido: as asserções contam linhas e não devem depender do seed.
--- A transação sofre rollback no fim.
+-- Cenário conhecido: as asserções contam linhas e não devem depender do seed
+-- nem do que sobrou de uma execução do E2E — o CRUD do admin escreve em
+-- audit_logs de verdade. A transação sofre rollback no fim.
 delete from public.jobs;
 delete from public.companies;
+delete from public.audit_logs;
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
