@@ -40,17 +40,19 @@ describe('parseServerEnv', () => {
     const env = parseServerEnv(validServerEnv)
 
     expect(env.AI_MODEL_PRIMARY).toBe('z-ai/glm-5.2')
-    expect(env.AI_MODEL_FALLBACK).toBe('minimaxai/minimax-m3')
+    expect(env.AI_MODEL_SECONDARY).toBe('minimaxai/minimax-m3')
+    expect(env.AI_MODEL_FALLBACK).toBe('meta/llama-3.3-70b-instruct')
   })
 
   it('preserva os modelos informados por env', () => {
     const env = parseServerEnv({
       ...validServerEnv,
       AI_MODEL_PRIMARY: 'nvidia/llama-3.1-nemotron-70b-instruct',
-      AI_MODEL_FALLBACK: 'meta/llama-3.3-70b-instruct',
+      AI_MODEL_FALLBACK: 'mistralai/mistral-small-24b-instruct',
     })
 
     expect(env.AI_MODEL_PRIMARY).toBe('nvidia/llama-3.1-nemotron-70b-instruct')
+    expect(env.AI_MODEL_FALLBACK).toBe('mistralai/mistral-small-24b-instruct')
   })
 
   it('trata variável em branco como não informada', () => {
@@ -63,7 +65,7 @@ describe('parseServerEnv', () => {
     })
 
     expect(env.AI_MODEL_PRIMARY).toBe('z-ai/glm-5.2')
-    expect(env.AI_MODEL_FALLBACK).toBe('minimaxai/minimax-m3')
+    expect(env.AI_MODEL_FALLBACK).toBe('meta/llama-3.3-70b-instruct')
     expect(env.SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID).toBeUndefined()
   })
 
@@ -104,7 +106,7 @@ describe('resolveAiEnv', () => {
 
     expect(ai).toEqual({
       apiKeys: ['nvapi-teste'],
-      models: ['z-ai/glm-5.2', 'moonshotai/kimi-k2.6', 'minimaxai/minimax-m3'],
+      models: ['z-ai/glm-5.2', 'minimaxai/minimax-m3', 'meta/llama-3.3-70b-instruct'],
       monthlyTokenBudget: null,
     })
   })

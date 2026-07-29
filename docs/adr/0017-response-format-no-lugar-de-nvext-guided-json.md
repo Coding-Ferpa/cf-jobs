@@ -43,7 +43,7 @@ Tudo o mais do doc 05 continua valendo, e é o que faz esta troca ser segura:
 ## Consequências
 
 - O doc 05 precisa trocar a linha da tabela de configuração da chamada. A intenção da linha permanece intacta; o nome do recurso é que envelheceu.
-- **Fora do escopo desta ADR, e decisão do mantenedor:** `moonshotai/kimi-k2.6` responde 404 para esta conta. A cascata funciona com dois modelos, mas o segundo degrau está morto — vale trocar `AI_MODEL_SECONDARY` por um modelo habilitado.
+- **Fora do escopo desta ADR, e decisão do mantenedor:** `moonshotai/kimi-k2.6` responde 404 para esta conta. A cascata funciona com dois modelos, mas o segundo degrau está morto — vale trocar `AI_MODEL_SECONDARY` por um modelo habilitado. *(Resolvido no M6.1: ver a sonda da cascata nova, abaixo.)*
 - Também medido: mesmo com o `response_format` aceito, uma resposta leva de 23s a 44s. O orçamento de 55s do pipeline cabe **uma** chamada boa mais a descoberta; a cascata inteira não cabe. É o que motivou o corte de timeout por chamada em `nim.ts` — a falha vira retomável antes dos 55s, em vez de estourar a função.
 
 ## O que a verificação de ponta a ponta mediu
@@ -62,3 +62,25 @@ As quatro criaram vaga em `pending_review`, com empresa nova, junções e sugest
 A latência **não** acompanha o tamanho do prompt: a Gupy respondeu em 28,7s com 3,2k tokens, e a Lever levou 107s com 3,7k. As três lentas são a mesma história — 45s de timeout no primeiro modelo, 45s no segundo, e o terceiro respondendo em ~17s. O tier gratuito do NIM enfileira, e a espera é imprevisível.
 
 **Consequência para o doc 02:** a decisão de importar de forma síncrona ("cabe no `maxDuration: 60` de uma função Vercel") não se sustenta com estes modelos e este tier. Com 55s de orçamento, só a Gupy teria passado de primeira; as outras três dependeriam do "Tentar novamente", que retoma do cache mas continua sujeito à mesma loteria. As saídas são do mantenedor: modelo mais rápido, tier pago, prompt menor que os 20 000 caracteres do doc 05, ou antecipar a fila da Fase 2.
+
+*(Resolvido no M6.1: o mantenedor manteve a mesma invocação e subiu o teto para `maxDuration: 300` com Fluid compute; o pipeline passou a rodar em segundo plano por `after()`, e o orçamento passou a derivar do teto da rota.)*
+
+## Sonda da cascata nova (M6.1)
+
+Trocar `AI_MODEL_SECONDARY` e `AI_MODEL_FALLBACK` sem sondar seria repetir o erro que colocou um modelo 404 como padrão. `scripts/sondar-modelos.ts` faz uma chamada real por modelo, com e sem `response_format`, e mede — é um pré-requisito para promover qualquer modelo a padrão no código.
+
+Pergunta de 30 tokens ("cidade e país da sede da comunidade"), schema de dois campos, `max_tokens: 200`:
+
+| Modelo | `response_format: json_schema` | Latência com schema | Sem schema |
+|---|---|---|---|
+| `z-ai/glm-5.2` | **aceito** (200) | 4,1s | 35,9s |
+| `minimaxai/minimax-m3` | **aceito** (200) | 0,7s e 1,6s | 2,7s e 5,7s |
+| `meta/llama-3.3-70b-instruct` | **aceito** (200) | 227,5s (e um timeout em 90s antes) | 85,9s; uma chamada com `503 ResourceExhausted: Worker local total request limit reached (16/16)` |
+
+Três coisas que a sonda ensina:
+
+1. **Os três aceitam o decoding restrito.** A cascata inteira roda com o schema; a flag de suporte por modelo continua existindo, mas não deve disparar para nenhum destes.
+2. **Com schema é mais rápido, não mais lento.** Nos dois primeiros a diferença é de 5 a 9 vezes: o modelo não gasta tokens escrevendo cerca de JSON (` ```json `, prosa antes do objeto). O recurso paga o próprio custo.
+3. **`meta/llama-3.3-70b-instruct` aceita o schema mas quase nunca responde a tempo.** Não é o caso do kimi — ele existe e funciona —, é capacidade: o 503 diz que o worker compartilhado do tier gratuito está com 16 de 16 requisições. Como terceiro degrau ele é chamado justamente quando os dois primeiros falharam, com o orçamento já curto, e o timeout por chamada (45s, encolhido pelo restante) vai cortá-lo antes da resposta.
+
+**O que fica para o mantenedor:** o terciário está no `.env` e é decisão tomada; o registro aqui é de que ele é, na prática, um degrau decorativo neste tier. Um modelo pequeno e rápido (`mistralai/mistral-small-24b-instruct`, por exemplo) renderia mais como último recurso — mas isso é escolha de catálogo, não de código.

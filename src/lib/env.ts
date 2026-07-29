@@ -34,10 +34,14 @@ export const serverEnvSchema = z.object({
   // local em vez de gastar chamada de verdade.
   AI_BASE_URL: z.url().optional(),
 
-  // Cascata de modelos, tentados nesta ordem (doc 05).
+  // Cascata de modelos, tentados nesta ordem (doc 05). Os três foram sondados
+  // com chave real antes de virarem padrão (`scripts/sondar-modelos.ts`): todos
+  // existem para a conta e aceitam `response_format: json_schema` (ADR-0017).
+  // O anterior segundo degrau, `moonshotai/kimi-k2.6`, respondia 404 — padrão
+  // que não existe é degrau a menos na cascata, e ninguém percebe.
   AI_MODEL_PRIMARY: z.string().min(1).default('z-ai/glm-5.2'),
-  AI_MODEL_SECONDARY: z.string().min(1).default('moonshotai/kimi-k2.6'),
-  AI_MODEL_FALLBACK: z.string().min(1).default('minimaxai/minimax-m3'),
+  AI_MODEL_SECONDARY: z.string().min(1).default('minimaxai/minimax-m3'),
+  AI_MODEL_FALLBACK: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
 
   // Sem esta variável o painel de tokens continua existindo, só não há
   // bloqueio suave (doc 05): o tier gratuito confirmado já dá folga.

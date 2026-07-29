@@ -46,9 +46,9 @@ Regras de fetch: timeout 15s, `User-Agent` identificado (`CFJobsBot/1.0 (+https:
 | Parâmetro | Valor | Racional |
 |---|---|---|
 | Endpoint | `https://integrate.api.nvidia.com/v1/chat/completions` | OpenAI-compatível |
-| Modelo primário | `z-ai/glm-5.2` (`AI_MODEL_PRIMARY`) | cascata escolhida pelo mantenedor (2026-07) no catálogo NIM |
-| Secundário | `moonshotai/kimi-k2.6` (`AI_MODEL_SECONDARY`) | segunda tentativa na cascata |
-| Terciário | `minimaxai/minimax-m3` (`AI_MODEL_FALLBACK`) | última tentativa antes da espera longa |
+| Modelo primário | `z-ai/glm-5.2` (`AI_MODEL_PRIMARY`) | cascata escolhida pelo mantenedor (2026-07) no catálogo NIM; sondado com chave real — aceita `response_format`, ~4s numa resposta curta |
+| Secundário | `minimaxai/minimax-m3` (`AI_MODEL_SECONDARY`) | o mais rápido dos três na sonda (menos de 2s); substituiu `moonshotai/kimi-k2.6`, que responde 404 para a conta |
+| Terciário | `meta/llama-3.3-70b-instruct` (`AI_MODEL_FALLBACK`) | última tentativa antes da espera longa. Aceita o schema, mas na sonda levou de 86s a 228s e chegou a devolver `503 Worker local total request limit reached` — no tier gratuito é um degrau que raramente responde dentro do timeout de 45s ([ADR-0017](adr/0017-response-format-no-lugar-de-nvext-guided-json.md)) |
 | `temperature` | 0.1 | extração determinística |
 | `max_tokens` | 2048 | JSON de resposta cabe com folga |
 | Decoding restrito | JSON Schema abaixo, em `response_format: json_schema` | restringe a saída ao schema — elimina JSON inválido na origem. Suporte verificado empiricamente por modelo na primeira chamada real, com a flag registrada; sem suporte → JSON mode simples + Zod. **O `nvext.guided_json` não existe mais no endpoint** ([ADR-0017](adr/0017-response-format-no-lugar-de-nvext-guided-json.md)) |
