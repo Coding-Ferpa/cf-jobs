@@ -46,13 +46,14 @@ Regras de fetch: timeout 15s, `User-Agent` identificado (`CFJobsBot/1.0 (+https:
 | Parâmetro | Valor | Racional |
 |---|---|---|
 | Endpoint | `https://integrate.api.nvidia.com/v1/chat/completions` | OpenAI-compatível |
-| Modelo primário | `meta/llama-3.3-70b-instruct` | melhor custo/qualidade p/ extração; 128k ctx |
-| Fallback 1 | `nvidia/llama-3.1-nemotron-70b-instruct` | reforço de instruction-following |
-| Fallback 2 | `mistralai/mistral-small-24b-instruct` | barato/rápido, degradação graciosa |
+| Modelo primário | `z-ai/glm-5.2` (`AI_MODEL_PRIMARY`) | cascata escolhida pelo mantenedor (2026-07) no catálogo NIM |
+| Secundário | `moonshotai/kimi-k2.6` (`AI_MODEL_SECONDARY`) | segunda tentativa na cascata |
+| Terciário | `minimaxai/minimax-m3` (`AI_MODEL_FALLBACK`) | última tentativa antes da espera longa |
 | `temperature` | 0.1 | extração determinística |
 | `max_tokens` | 2048 | JSON de resposta cabe com folga |
-| `nvext.guided_json` | JSON Schema abaixo | decoding restrito ao schema (recurso NIM) — elimina JSON inválido na origem |
-| Timeout | 45s por chamada | 70B pode demorar sob carga |
+| `nvext.guided_json` | JSON Schema abaixo | decoding restrito ao schema (recurso NIM) — elimina JSON inválido na origem. Suporte varia por modelo: verificar empiricamente por modelo na primeira chamada real e registrar a flag; sem suporte → JSON mode simples + Zod |
+| Timeout | 45s por chamada | modelos grandes podem demorar sob carga |
+| Chaves de API | `NVIDIA_API_KEY` e `NVIDIA_API_KEY_FALLBACK` em **rotação round-robin a cada chamada** | distribui o consumo de RPM entre as duas contas; em `429`/`401` numa chave, a chamada seguinte usa a outra |
 
 A chamada envia ao modelo: o system prompt, as **listas de taxonomias ativas** (slugs + labels, extraídas do banco no momento da chamada) e o conteúdo Markdown da vaga. Enviar as listas é o que permite ao modelo *selecionar* registros existentes em vez de inventar — requisito do projeto.
 
@@ -185,8 +186,9 @@ Empresa: match por `lower(name)` → cria se nova (sem revisão: empresa é dado
 |---|---|
 | Fetch da fonte (timeout/4xx/5xx) | 3 tentativas, backoff exponencial c/ jitter (1s, 3s, 9s); 404 não retenta (vaga removida); mensagem específica por classe de erro |
 | Página exige JS | falha imediata com orientação ao admin (usar link do ATS) |
-| NIM 429/5xx | 2 retries backoff; depois **fallback de modelo** (primário → fallback 1 → 2); tudo registrado em `job_imports.model` |
-| NIM timeout (45s) | 1 retry no modelo fallback (mais rápido) |
+| NIM 429/5xx | 2 retries backoff (alternando a chave); depois **cascata de modelo** (primário → secundário → terciário); tudo registrado em `job_imports.model` |
+| NIM timeout (45s) | 1 retry no próximo modelo da cascata |
+| Cascata inteira falhou (3 modelos) | **espera de 15–30s (jitter) e repete o ciclo uma única vez**, somente se o orçamento de tempo restante do pipeline comportar (≥ ~35s); senão grava `failed` retryable — "Tentar novamente" retoma do cache de conteúdo sem novo fetch |
 | JSON inválido / Zod falha | 1 retry de reparo (acima); depois `failed` no passo `classifying` |
 | Confiança < 0.5 | não falha: vaga criada com alerta de baixa confiança para revisão cuidadosa |
 | Orçamento de tempo total do pipeline | 55s (margem sob maxDuration 60s); estouro → `failed` com passo atual preservado — **re-execução retoma do cache** de `raw_content` |
@@ -201,7 +203,7 @@ Reprocessar: botão "Tentar novamente" no admin cria novo `job_imports` (attempt
 
 ## Custo e orçamento
 
-**Tier contratado:** API key gratuita do build.nvidia.com com limite de **40 requisições/minuto** — muito acima da necessidade (1–2 chamadas por importação; importação em lote processa no máx. 5/min). O cliente NIM deve ainda assim tratar `429` com backoff (tabela acima) e a importação em lote deve manter o teto de 5 imports/min como throttle explícito, garantindo margem mesmo com retries e reparos.
+**Tier contratado:** **duas** API keys gratuitas do build.nvidia.com, cada uma com limite de **40 requisições/minuto**, usadas em rotação round-robin — folga enorme (1–2 chamadas por importação; importação em lote processa no máx. 5/min). O cliente NIM deve ainda assim tratar `429` com backoff (tabela acima) e a importação em lote deve manter o teto de 5 imports/min como throttle explícito. Com o tier gratuito confirmado pelo mantenedor, `AI_MONTHLY_TOKEN_BUDGET` passa a ser **opcional**: o painel de consumo de tokens continua existindo (observabilidade), mas o bloqueio suave só é ativado se a env for definida.
 
 Estimativa por importação com Llama 3.3 70B (preços NVIDIA ~US$0,20/M tokens in, ~US$0,60/M out, a confirmar no build.nvidia.com): prompt ~6k tokens (conteúdo 4-5k + listas 1k) + saída ~1,2k → **≈ US$ 0,002 por vaga**. 500 vagas/mês ≈ US$ 1. O free tier de créditos do build.nvidia.com cobre o MVP inteiro. Guard-rails: alerta no dashboard quando tokens do mês > limite configurável (`AI_MONTHLY_TOKEN_BUDGET`, soma de `tokens_in+tokens_out` em `job_imports`); bloqueio suave (aviso, exige confirmação) ao ultrapassar.
 

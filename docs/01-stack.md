@@ -125,8 +125,8 @@ O jsdom saiu da tabela no M4.2: o 30 exige `^22.22.2 || ^24.15.0 || >=26` e a ba
 | `SUPABASE_SERVICE_ROLE_KEY` | servidor | Somente Server Actions/admin |
 | `DATABASE_URL` | servidor | Pooler Supavisor (transaction mode) para Drizzle |
 | `DIRECT_URL` | servidor/CI | Conexão direta para migrations |
-| `NVIDIA_API_KEY` | servidor | build.nvidia.com — **opcional no boot**: validada preguiçosamente pelo módulo de importação no ponto de uso (erro claro se ausente); o restante do app, inclusive login, sobe sem ela — contribuidor de UI não precisa de chave NVIDIA |
-| `AI_MODEL_PRIMARY` / `AI_MODEL_FALLBACK` | servidor | Ids dos modelos NIM (com defaults no código) |
+| `NVIDIA_API_KEY` / `NVIDIA_API_KEY_FALLBACK` | servidor | duas chaves build.nvidia.com em rotação round-robin por chamada (doc 05) — **opcionais no boot**: validadas preguiçosamente pelo módulo de importação no ponto de uso (erro claro se ausentes); o restante do app, inclusive login, sobe sem elas — contribuidor de UI não precisa de chave NVIDIA |
+| `AI_MODEL_PRIMARY` / `AI_MODEL_SECONDARY` / `AI_MODEL_FALLBACK` | servidor | Cascata de modelos NIM (com defaults no código, doc 05) |
 | `CRON_SECRET` | servidor | Protege endpoints acionados por cron externo (se usados) |
 
 Arquivo `.env.example` obrigatório no repo, sempre atualizado (verificado em CI por script que compara com o schema de env validado por Zod em `src/lib/env.ts` — falha de build se faltar variável).
