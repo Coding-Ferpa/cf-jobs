@@ -162,35 +162,9 @@ describe('classificar', () => {
 })
 
 describe('revisão semântica', () => {
-  it('descarta slug que não está no cadastro e avisa', () => {
-    const revisada = revisarSemantica(vaga({ work_mode: 'hibrido-inventado' }), LISTAS)
-
-    expect(revisada.vaga.work_mode).toBeNull()
-    expect(revisada.avisos[0]).toContain('hibrido-inventado')
-  })
-
-  it('manda tecnologia desconhecida para a fila de sugestões', () => {
-    const revisada = revisarSemantica(vaga({ technologies: ['go', 'datomic'] }), LISTAS)
-
-    expect(revisada.vaga.technologies).toEqual(['go'])
-    expect(revisada.vaga.unmatched_terms).toContainEqual({
-      kind: 'technology',
-      label: 'datomic',
-      context: null,
-    })
-  })
-
-  it('faz o mesmo com tag desconhecida', () => {
-    const revisada = revisarSemantica(vaga({ tags: ['fintech', 'web3'] }), LISTAS)
-
-    expect(revisada.vaga.tags).toEqual(['fintech'])
-    expect(revisada.vaga.unmatched_terms.some((t) => t.label === 'web3')).toBe(true)
-  })
-
   it('corrige faixa salarial invertida', () => {
     const revisada = revisarSemantica(
       vaga({ salary: { min: 18000, max: 12000, currency: 'BRL', period: 'month' } }),
-      LISTAS,
     )
 
     expect(revisada.vaga.salary).toMatchObject({ min: 12000, max: 18000 })
@@ -201,17 +175,24 @@ describe('revisão semântica', () => {
     expect(() =>
       revisarSemantica(
         vaga({ description_md: `qualquer coisa REGRAS ABSOLUTAS mais coisa`.repeat(5) }),
-        LISTAS,
       ),
     ).toThrow(FalhaDaClassificacao)
   })
 
-  it('não mexe no que está certo', () => {
-    const original = vaga()
-    const revisada = revisarSemantica(original, LISTAS)
+  /**
+   * Conferir slug aqui seria pior que não conferir: o prompt canônico do doc 05
+   * manda o modelo responder "hybrid", e `hibrido` só é alcançável pelo alias
+   * que o mapeamento (etapa 4) consulta. Descartar antes disso apagaria a
+   * modalidade de toda vaga importada.
+   */
+  it('deixa os slugs passarem — quem confere é o mapeamento', () => {
+    const revisada = revisarSemantica(
+      vaga({ work_mode: 'hybrid', technologies: ['go', 'ReactJS'] }),
+    )
 
+    expect(revisada.vaga.work_mode).toBe('hybrid')
+    expect(revisada.vaga.technologies).toEqual(['go', 'ReactJS'])
     expect(revisada.avisos).toEqual([])
-    expect(revisada.vaga.technologies).toEqual(['go', 'postgresql'])
   })
 })
 

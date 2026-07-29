@@ -5,12 +5,7 @@ import {
   SYSTEM_PROMPT,
   type ListasDeOpcoes,
 } from './prompt'
-import {
-  CONFIANCA_MINIMA,
-  vagaClassificadaSchema,
-  type TermoNaoMapeado,
-  type VagaClassificada,
-} from './schema'
+import { CONFIANCA_MINIMA, vagaClassificadaSchema, type VagaClassificada } from './schema'
 
 /**
  * Classificação da vaga (doc 05, etapa 3), com a validação em camadas que o
@@ -18,13 +13,15 @@ import {
  *
  * 1. `guided_json` restringe o decoding, quando o modelo suporta.
  * 2. Zod valida o que voltou.
- * 3. Validação semântica: slug que não existe nas listas não vira campo — vira
- *    sugestão para revisão humana. É a trava que impede a IA de inventar
- *    taxonomia, que é requisito do projeto.
+ * 3. Validação semântica: o que o modelo não podia ter escrito não passa.
  * 4. Falhou o parse ou o Zod: um retry de reparo com os erros anexados.
  *
- * A camada 3 é a que mais pega coisa na prática: o modelo obedece o formato e
- * erra o vocabulário.
+ * A camada 3 **não confere slugs**. Conferir é o trabalho do mapeamento (etapa
+ * 4), que consulta o catálogo de verdade — com aliases e semelhança — em vez da
+ * lista que foi para o prompt. Fazer o descarte aqui seria ativamente pior: o
+ * prompt canônico manda o modelo responder "hybrid", e `hibrido` só é
+ * alcançável por alias. Nada inventado chega ao banco de qualquer jeito, porque
+ * o mapeamento só emite id que veio do catálogo.
  */
 
 export class FalhaDaClassificacao extends Error {
@@ -72,49 +69,14 @@ export function extrairJson(texto: string): string {
   return inicio >= 0 && fim > inicio ? semCerca.slice(inicio, fim + 1) : semCerca
 }
 
-function conjuntoDeSlugs(lista: ListasDeOpcoes[keyof ListasDeOpcoes]): Set<string> {
-  return new Set(lista.map((opcao) => opcao.slug))
-}
-
 type Revisao = { vaga: VagaClassificada; avisos: string[] }
 
 /**
- * Camada semântica. Nada aqui derruba a importação: o que não confere é
-   movido para a fila de sugestões ou corrigido com aviso, porque a revisão
- * humana é quem decide.
+ * Camada semântica. Só duas coisas moram aqui: o que dá para corrigir com
+ * certeza, e o que não pode virar vaga de jeito nenhum.
  */
-export function revisarSemantica(
-  vaga: VagaClassificada,
-  listas: ListasDeOpcoes,
-): Revisao {
+export function revisarSemantica(vaga: VagaClassificada): Revisao {
   const avisos: string[] = []
-  const naoMapeados: TermoNaoMapeado[] = [...vaga.unmatched_terms]
-
-  const escalar = (
-    valor: string | null | undefined,
-    lista: ListasDeOpcoes[keyof ListasDeOpcoes],
-    campo: string,
-  ): string | null => {
-    if (!valor) return null
-    if (conjuntoDeSlugs(lista).has(valor)) return valor
-
-    avisos.push(`O modelo escolheu "${valor}" em ${campo}, que não está no cadastro.`)
-    return null
-  }
-
-  const tecnologiasValidas = conjuntoDeSlugs(listas.technologies)
-  const technologies = vaga.technologies.filter((slug) => {
-    if (tecnologiasValidas.has(slug)) return true
-    naoMapeados.push({ kind: 'technology', label: slug, context: null })
-    return false
-  })
-
-  const tagsValidas = conjuntoDeSlugs(listas.tags)
-  const tags = vaga.tags.filter((slug) => {
-    if (tagsValidas.has(slug)) return true
-    naoMapeados.push({ kind: 'tag', label: slug, context: null })
-    return false
-  })
 
   const salary = { ...vaga.salary }
   if (
@@ -139,20 +101,7 @@ export function revisarSemantica(
     )
   }
 
-  return {
-    avisos,
-    vaga: {
-      ...vaga,
-      work_mode: escalar(vaga.work_mode, listas.work_modes, 'modalidade'),
-      contract_type: escalar(vaga.contract_type, listas.contract_types, 'contratação'),
-      seniority: escalar(vaga.seniority, listas.seniority_levels, 'senioridade'),
-      role_category: escalar(vaga.role_category, listas.role_categories, 'área'),
-      technologies,
-      tags,
-      unmatched_terms: naoMapeados.slice(0, 15),
-      salary,
-    },
-  }
+  return { avisos, vaga: { ...vaga, salary } }
 }
 
 function validar(texto: string): { vaga: VagaClassificada } | { erros: string } {
@@ -219,7 +168,7 @@ export async function classificar(
     }
   }
 
-  const revisada = revisarSemantica(resultado.vaga, entrada.listas)
+  const revisada = revisarSemantica(resultado.vaga)
 
   return {
     vaga: revisada.vaga,
