@@ -10,7 +10,11 @@ const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-poppins',
-  display: 'swap',
+  // `optional` em vez de `swap`: a troca tardia da fonte reflowava o título do
+  // hero e estourava o orçamento de CLS do doc 08. Com preload, a Poppins
+  // chega a tempo na quase totalidade das visitas; quando não chega, a página
+  // usa a fallback ajustada e ninguém vê o texto pular.
+  display: 'optional',
 })
 
 const jetBrainsMono = JetBrains_Mono({

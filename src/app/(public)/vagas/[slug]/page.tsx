@@ -28,7 +28,7 @@ const buscarVaga = unstable_cache(
 function Resumo({ termo, valor }: { termo: string; valor: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-subtle-foreground text-xs">{termo}</dt>
+      <dt className="text-muted-foreground text-xs">{termo}</dt>
       <dd className="text-caption">{valor}</dd>
     </div>
   )
@@ -197,7 +197,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
           <JobShare titulo={vaga.title} url={url} />
 
-          <p className="text-subtle-foreground text-xs">
+          <p className="text-muted-foreground text-xs">
             Publicada originalmente em{' '}
             <a
               className="underline"

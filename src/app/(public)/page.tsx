@@ -110,7 +110,15 @@ export default async function HomePage({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col gap-5">
+        <section
+          aria-labelledby="titulo-resultados"
+          className="flex min-w-0 flex-1 flex-col gap-5"
+        >
+          {/* Sem este h2 a hierarquia pula de h1 para o h3 dos cards. */}
+          <h2 className="sr-only" id="titulo-resultados">
+            Vagas encontradas
+          </h2>
+
           <div className="flex flex-col gap-3">
             <ActiveFilters facetas={facetas} />
             <p aria-live="polite" className="text-caption text-muted-foreground">

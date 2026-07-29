@@ -90,7 +90,7 @@ export function JobFilters({ facetas }: { facetas: Facet[] }) {
                     type="checkbox"
                   />
                   <span className="flex-1 truncate">{opcao.label}</span>
-                  <span className="text-subtle-foreground font-mono text-xs">
+                  <span className="text-muted-foreground font-mono text-xs">
                     {opcao.count}
                   </span>
                 </label>

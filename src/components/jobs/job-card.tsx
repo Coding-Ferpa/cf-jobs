@@ -59,7 +59,7 @@ export function JobCard({ job }: { job: JobListItem }) {
         </span>
 
         {job.status === 'archived' ? (
-          <span className="bg-surface text-subtle-foreground ml-auto rounded-full px-2 py-0.5 text-xs">
+          <span className="bg-surface text-muted-foreground ml-auto rounded-full px-2 py-0.5 text-xs">
             Arquivada
           </span>
         ) : null}
@@ -89,7 +89,7 @@ export function JobCard({ job }: { job: JobListItem }) {
             </li>
           ))}
           {restantes > 0 ? (
-            <li className="text-subtle-foreground px-1 py-1 font-mono text-xs">
+            <li className="text-muted-foreground px-1 py-1 font-mono text-xs">
               +{restantes}
             </li>
           ) : null}
@@ -97,7 +97,7 @@ export function JobCard({ job }: { job: JobListItem }) {
       ) : null}
 
       <div className="text-caption mt-auto flex items-center justify-between gap-3 pt-1">
-        <span className="text-subtle-foreground">
+        <span className="text-muted-foreground">
           {job.publishedAt ? formatarDataRelativa(job.publishedAt) : null}
         </span>
         {salario ? <span className="text-success font-medium">{salario}</span> : null}

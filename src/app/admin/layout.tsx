@@ -38,7 +38,7 @@ export default async function AdminLayout({
           <div className="flex items-center gap-4">
             <span className="text-caption text-muted-foreground">
               {usuario.email}
-              <span className="bg-surface text-subtle-foreground ml-2 rounded-full px-2 py-0.5 font-mono text-xs">
+              <span className="bg-surface text-muted-foreground ml-2 rounded-full px-2 py-0.5 font-mono text-xs">
                 {NOME_DO_PAPEL[usuario.role]}
               </span>
             </span>

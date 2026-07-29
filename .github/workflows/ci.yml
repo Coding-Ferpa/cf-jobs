@@ -12,8 +12,6 @@ concurrency:
 env:
   NODE_VERSION: '22'
 
-# O job `lighthouse` entra no M3, quando existir área pública para medir
-# (docs 11 e 12).
 jobs:
   quality:
     name: Lint, tipos e formatação
@@ -99,6 +97,40 @@ jobs:
         if: ${{ always() }}
         run: pnpm db:stop
 
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Os budgets são medidos contra a área pública com as vagas do seed.
+      - name: Sobe o Supabase local
+        run: pnpm db:start
+      - name: Aponta o app para o Supabase local
+        run: |
+          eval "$(pnpm exec supabase status -o env | grep -E '^[A-Z_]+=' | sed 's/^/export /')"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "DATABASE_URL=$DB_URL"
+            echo "DIRECT_URL=$DB_URL"
+            echo "CRON_SECRET=segredo-de-teste-do-ci-cfjobs"
+            echo "ANALYTICS_SALT=sal-de-teste-do-ci-cfjobs"
+          } >> "$GITHUB_ENV"
+      - run: pnpm build
+      - name: Budgets do doc 12
+        run: pnpm exec lhci autorun
+      - name: Derruba o Supabase
+        if: ${{ always() }}
+        run: pnpm db:stop
+
   e2e:
     name: Testes E2E
     runs-on: ubuntu-latest
@@ -127,6 +159,7 @@ jobs:
             echo "DATABASE_URL=$DB_URL"
             echo "DIRECT_URL=$DB_URL"
             echo "CRON_SECRET=segredo-de-teste-do-ci-cfjobs"
+            echo "ANALYTICS_SALT=sal-de-teste-do-ci-cfjobs"
           } >> "$GITHUB_ENV"
       # O build roda pelo webServer do playwright.config.ts.
       - run: pnpm test:e2e
