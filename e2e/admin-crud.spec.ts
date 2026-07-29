@@ -95,6 +95,9 @@ test.describe('CRUD de vagas do admin', () => {
 
     await page.goto('/admin/vagas')
     await page.getByLabel('Buscar por título ou empresa').fill(titulo)
+    // A busca tem debounce: esperar a URL evita afirmar sobre a lista inteira
+    // antes de o filtro sair do lugar.
+    await expect(page).toHaveURL(/[?&]q=/)
     await expect(page.getByText('Nenhuma vaga com esses filtros.')).toBeVisible()
   })
 

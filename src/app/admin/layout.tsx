@@ -25,7 +25,7 @@ const NOME_DO_PAPEL = {
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // O middleware já redireciona quem não entrou, mas a autorização de verdade
+  // O proxy já redireciona quem não entrou, mas a autorização de verdade
   // acontece aqui, no servidor, a cada renderização (doc 07).
   const usuario = await requireRole(MIN_ADMIN_ROLE)
 

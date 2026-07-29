@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { revalidateTag } from 'next/cache'
+import { updateTag } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
 import { z } from 'zod'
 
@@ -122,7 +122,13 @@ export function defineAction<TSchema extends z.ZodType, TData>(
     }
 
     // Fora da transação: o cache só deve cair depois que o dado existe.
-    for (const tag of config.revalidar ?? []) revalidateTag(tag)
+    //
+    // `updateTag` e não `revalidateTag`: no Next 16 o segundo purga a tag e
+    // deixa a releitura para a próxima requisição, enquanto o primeiro é o que
+    // dá read-your-own-writes dentro de uma Server Action — que é o
+    // comportamento de que este admin depende (publicar e ver na home no
+    // mesmo passo). Ver docs/adr/0014.
+    for (const tag of config.revalidar ?? []) updateTag(tag)
 
     return actionOk(efeito.data)
   }

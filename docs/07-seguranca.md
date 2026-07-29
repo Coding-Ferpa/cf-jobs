@@ -5,7 +5,7 @@ Modelo mental: **o Postgres é a última linha de defesa e a única confiável**
 ## Autenticação (Supabase Auth)
 
 - Métodos: **e-mail/senha** e **GitHub OAuth** (natural para comunidade dev). Cadastro aberto, mas todo usuário novo nasce `reader` (sem acesso ao admin) — promoção a papel superior é ação manual de admin.
-- Sessão via cookies (`@supabase/ssr`), tokens rotacionados; middleware do Next apenas **redireciona** não-autenticados de `/admin` para `/login` (UX); a autorização real acontece no servidor a cada Server Action/página.
+- Sessão via cookies (`@supabase/ssr`), tokens rotacionados; o proxy do Next (`src/proxy.ts`, o antigo middleware, renomeado no Next 16) apenas **redireciona** não-autenticados de `/admin` para `/login` (UX); a autorização real acontece no servidor a cada Server Action/página.
 - **Custom Access Token Hook** injeta `user_role` como claim no JWT. Benefícios: RLS lê o papel do token (`(auth.jwt()->>'user_role')`) sem join com `profiles` em cada policy; o app lê o papel da sessão sem query. Mudança de papel força re-login (trade-off aceito e documentado; sessões duram 1h).
 
 ## Papéis e permissões

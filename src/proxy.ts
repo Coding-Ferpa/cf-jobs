@@ -6,7 +6,7 @@ import { buildContentSecurityPolicy } from '@/lib/security-headers'
 
 /**
  * Rotas renderizadas dinamicamente e ligadas à sessão. Aqui — e só aqui — o
- * middleware renova o token do Supabase e o Next consegue carimbar o nonce da
+ * proxy renova o token do Supabase e o Next consegue carimbar o nonce da
  * CSP nos scripts (ADR-0012).
  *
  * A área pública fica de fora de propósito: ela é estática/ISR e não precisa de
@@ -14,7 +14,7 @@ import { buildContentSecurityPolicy } from '@/lib/security-headers'
  */
 const ROTAS_DINAMICAS = ['/admin', '/login']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const rotaDinamica = ROTAS_DINAMICAS.some((rota) => pathname.startsWith(rota))
 

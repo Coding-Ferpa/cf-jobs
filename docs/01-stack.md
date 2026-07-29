@@ -6,7 +6,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 
 | Camada | Escolha | Alternativas rejeitadas |
 |---|---|---|
-| Framework | **Next.js 15 (App Router)** | Remix, Astro, SPA React+Vite |
+| Framework | **Next.js 16 (App Router)** | Remix, Astro, SPA React+Vite |
 | Linguagem | **TypeScript (strict)** | — |
 | UI | **Tailwind CSS v4 + shadcn/ui** | CSS Modules, Chakra, MUI |
 | Dados (server) | **Drizzle ORM** | Prisma, supabase-js puro |
@@ -29,7 +29,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 
 ---
 
-## Framework: Next.js 15 (App Router) — por quê
+## Framework: Next.js 16 (App Router) — por quê
 
 1. **SEO é requisito central.** Vagas precisam ser indexáveis (inclusive Google for Jobs via JSON-LD). React Server Components + geração estática incremental (ISR) entregam HTML completo no primeiro byte, sem hidratação pesada.
 2. **Vercel é requisito de deploy.** Next.js é first-class na Vercel: ISR, `revalidateTag`, imagem otimizada, `ImageResponse` para OG images, cron — tudo sem configuração extra e dentro do plano gratuito.
@@ -41,8 +41,8 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 ### Convenções de uso do Next.js
 
 - **Server Components por padrão.** `"use client"` apenas em componentes com interatividade real (filtros, formulários, gráficos).
-- **Páginas públicas:** estáticas com ISR (`revalidate` + `revalidateTag('jobs')` disparado nas mutations). Nada de `force-dynamic` na área pública.
-- **Admin:** dinâmico (dados sempre frescos), protegido por middleware + verificação de sessão no layout.
+- **Páginas públicas:** estáticas com ISR (`revalidate` + invalidação da tag `jobs` disparada nas mutations). Nada de `force-dynamic` na área pública. No Next 16 a função dentro de Server Action é `updateTag`, que também relê na hora; `revalidateTag` fica para invalidação de fora, como a do `pg_cron` ([ADR-0014](adr/0014-updatetag-no-lugar-de-revalidatetag.md)).
+- **Admin:** dinâmico (dados sempre frescos), protegido por proxy (o antigo middleware, renomeado no Next 16) + verificação de sessão no layout.
 - **Runtime Node.js** (não Edge) para rotas que usam Drizzle/IA — evita limitações de driver e de timeout do Edge runtime.
 
 ## UI: Tailwind CSS v4 + shadcn/ui — por quê

@@ -16,7 +16,7 @@ Centraliza vagas em um único lugar com busca, filtros inteligentes e páginas o
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript estrito · Tailwind CSS v4 + shadcn/ui · Drizzle ORM · Supabase (Postgres + Auth) · NVIDIA NIM · Vercel
+Next.js 16 (App Router) · TypeScript estrito · Tailwind CSS v4 + shadcn/ui · Drizzle ORM · Supabase (Postgres + Auth) · NVIDIA NIM · Vercel
 
 O porquê de cada escolha está em [docs/01 — Stack](docs/01-stack.md).
 

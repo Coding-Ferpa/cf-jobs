@@ -2,7 +2,7 @@
  * Cabeçalhos de segurança da aplicação (doc 07 — A05 Security Misconfiguration).
  *
  * Módulo puro de propósito: não importa nada de `next/*` para poder ser usado
- * tanto pelo `next.config.ts` quanto pelo middleware, e testado isoladamente.
+ * tanto pelo `next.config.ts` quanto pelo proxy, e testado isoladamente.
  */
 
 export type SecurityHeader = { key: string; value: string }
