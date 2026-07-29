@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(23);
 
 -- Cenário conhecido, independente do que o seed traz (rollback no fim).
 delete from public.jobs;
@@ -190,16 +190,30 @@ select isnt(
 -- ---------------------------------------------------------------------------
 
 select ok(
-  public.check_rate_limit('ip:teste', 2, interval '1 minute'),
+  (public.check_rate_limit('ip:teste', 2, interval '1 minute')).allowed,
   'rate limit libera a primeira requisição'
 );
-select ok(
-  public.check_rate_limit('ip:teste', 2, interval '1 minute'),
-  'rate limit libera até o máximo'
+select is(
+  (public.check_rate_limit('ip:teste', 2, interval '1 minute')).remaining,
+  0,
+  'saldo zera na última requisição que cabe na janela'
 );
 select ok(
-  not public.check_rate_limit('ip:teste', 2, interval '1 minute'),
+  not (public.check_rate_limit('ip:teste', 2, interval '1 minute')).allowed,
   'rate limit bloqueia acima do máximo'
+);
+
+-- Cada chave tem o próprio balde: o beacon de uma pessoa não gasta o saldo de
+-- leitura de outra.
+select is(
+  (public.check_rate_limit('ip:outra', 2, interval '1 minute')).remaining,
+  1,
+  'chaves diferentes contam separado'
+);
+select ok(
+  (public.check_rate_limit('ip:futuro', 2, interval '1 minute')).reset_at
+    > clock_timestamp(),
+  'reset_at aponta para o futuro'
 );
 
 select * from finish();
