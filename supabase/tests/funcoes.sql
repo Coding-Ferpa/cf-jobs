@@ -5,8 +5,12 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(21);
 
+-- Cenário conhecido, independente do que o seed traz (rollback no fim).
+delete from public.jobs;
+delete from public.companies;
+
 insert into public.companies (id, name, slug)
-values ('c0000000-0000-4000-8000-000000000001', 'Nubank', 'nubank');
+values ('c0000000-0000-4000-8000-000000000001', 'Aurora Pagamentos', 'aurora-pagamentos');
 
 insert into public.jobs (
   id, slug, title, company_id, description_md, summary,
@@ -29,7 +33,7 @@ select isnt(
 
 select ok(
   (
-    select search @@ websearch_to_tsquery('pg_catalog.simple', 'nubank')
+    select search @@ websearch_to_tsquery('pg_catalog.simple', 'aurora')
       from public.jobs where slug = 'vaga-teste'
   ),
   'busca encontra a vaga pelo nome da empresa'

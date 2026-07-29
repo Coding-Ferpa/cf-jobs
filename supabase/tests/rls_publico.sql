@@ -10,6 +10,12 @@ select plan(24);
 -- Fixtures (como postgres, antes de assumir qualquer papel)
 -- ---------------------------------------------------------------------------
 
+-- As asserções contam linhas, então o teste parte de um cenário conhecido em
+-- vez de depender do que o seed traz. A transação inteira sofre rollback no
+-- fim: nada disso encosta no banco de desenvolvimento.
+delete from public.jobs;
+delete from public.companies;
+
 insert into public.companies (id, name, slug)
 values ('c0000000-0000-4000-8000-000000000001', 'Empresa Teste', 'empresa-teste');
 

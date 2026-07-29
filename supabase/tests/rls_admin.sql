@@ -9,6 +9,11 @@ select plan(22);
 -- Fixtures
 -- ---------------------------------------------------------------------------
 
+-- Cenário conhecido: as asserções contam linhas e não devem depender do seed.
+-- A transação sofre rollback no fim.
+delete from public.jobs;
+delete from public.companies;
+
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data
