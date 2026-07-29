@@ -20,6 +20,14 @@ import { formatarData } from '@/lib/format'
 export const metadata: Metadata = { title: 'Importações' }
 
 /**
+ * O "Tentar novamente" desta tela dispara o mesmo pipeline em segundo plano, e
+ * uma Server Action roda na rota de onde foi chamada — sem este teto, a
+ * repetição morreria no limite padrão da função (doc 02). Ver
+ * `lib/import-runtime`.
+ */
+export const maxDuration = 300
+
+/**
  * Log das importações (doc 08), com filtro por status, adapter e modelo — que
  * é o recorte que o painel de observabilidade do doc 09 também usa.
  *

@@ -7,11 +7,14 @@ import { requireRole } from '@/lib/auth'
 export const metadata: Metadata = { title: 'Importar vaga' }
 
 /**
- * A importação roda dentro da própria invocação da action (doc 02), e o teto
- * do plano Hobby da Vercel é 60s — o pipeline se dá 55 e falha de forma
- * retomável antes disso.
+ * A action desta página devolve na hora e deixa o pipeline seguir por `after()`
+ * na mesma invocação (doc 02) — é este teto que a mantém viva enquanto isso.
+ *
+ * Precisa ser literal: o Next não aceita constante importada aqui. O número
+ * vive em `lib/import-runtime`, de onde sai o orçamento do pipeline, e
+ * `import-runtime.test.ts` falha se os dois divergirem.
  */
-export const maxDuration = 60
+export const maxDuration = 300
 
 export default async function ImportarVagaPage() {
   await requireRole('editor')

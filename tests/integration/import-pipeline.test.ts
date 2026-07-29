@@ -307,6 +307,28 @@ describe('marcações de etapa', () => {
     expect(linha?.status).toBe('mapping')
   })
 
+  it('fecha a tentativa duplicada apontando para a vaga existente', async () => {
+    const importId = await abrirImportacao(`https://x.test/dup/${randomUUID()}`)
+    const [vaga] = await db.query.jobs.findMany({ limit: 1 })
+
+    await repositorio.marcarDuplicada(importId, {
+      id: vaga!.id,
+      slug: vaga!.slug,
+      title: vaga!.title,
+    })
+
+    const [linha] = await db
+      .select()
+      .from(jobImports)
+      .where(eq(jobImports.id, importId))
+      .limit(1)
+
+    // `completed`, não `failed`: a tentativa terminou e o log tem para onde
+    // mandar quem clicar. Repetir não mudaria nada.
+    expect(linha).toMatchObject({ status: 'completed', jobId: vaga!.id })
+    expect(linha?.finishedAt).toBeInstanceOf(Date)
+  })
+
   it('registra a falha com etapa e mensagem', async () => {
     const importId = await abrirImportacao(`https://x.test/i/${randomUUID()}`)
 

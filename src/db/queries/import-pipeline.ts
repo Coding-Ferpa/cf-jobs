@@ -215,6 +215,16 @@ export function repositorioDoPipeline(): Repositorio {
       await db.update(jobImports).set({ status }).where(eq(jobImports.id, importId))
     },
 
+    async marcarDuplicada(importId, vaga) {
+      // `completed` e não `failed`: a tentativa terminou e produziu o que
+      // podia produzir — o link para a vaga que já existia. Repetir não muda
+      // nada, então o log não oferece "Tentar novamente".
+      await db
+        .update(jobImports)
+        .set({ status: 'completed', jobId: vaga.id, finishedAt: new Date() })
+        .where(eq(jobImports.id, importId))
+    },
+
     async guardarConteudo(importId, { rawContent, sourceSite }) {
       await db
         .update(jobImports)

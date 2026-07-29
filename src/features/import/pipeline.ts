@@ -1,3 +1,4 @@
+import { ORCAMENTO_DA_IMPORTACAO_MS } from '@/lib/import-runtime'
 import { safeFetch, FalhaDeFetch, type ResultadoDeFetch } from '@/lib/safe-fetch'
 import { canonicalizarUrl, hashDaUrl } from '@/lib/source-url'
 
@@ -25,16 +26,20 @@ import type { VagaClassificada } from './schema'
  * 1. **Cada etapa é gravada antes de começar.** Quem acompanha a barra de
  *    progresso lê `job_imports.status`; se a função morrer no meio, a linha diz
  *    exatamente onde parou, e é isso que o "Tentar novamente" usa.
- * 2. **O orçamento de 55s é conferido entre as etapas**, com margem sob o
- *    `maxDuration: 60` da Vercel. Estourar não é bug: é `failed` retomável, e
- *    a retomada não refaz o fetch porque o conteúdo ficou em cache.
+ * 2. **O orçamento é conferido entre as etapas.** Ele vem do teto da rota
+ *    (`maxDuration`) com margem, em `lib/import-runtime`. Estourar não é bug: é
+ *    `failed` retomável, e a retomada não refaz o fetch porque o conteúdo ficou
+ *    em cache.
  *
  * O módulo não conhece Next nem Postgres (doc 02): banco e catálogo chegam como
  * portas, e a rede só pelo `safeFetch`.
  */
 
-/** Margem sob o `maxDuration: 60` da função (doc 05). */
-export const ORCAMENTO_DO_PIPELINE_MS = 55_000
+/**
+ * Quanto o pipeline se dá antes de desistir. Deriva do `maxDuration` da rota
+ * que o hospeda (doc 02) — quem quiser outro valor passa `orcamentoMs`.
+ */
+export const ORCAMENTO_DO_PIPELINE_MS = ORCAMENTO_DA_IMPORTACAO_MS
 
 /** Doc 05: 3 tentativas com backoff exponencial e jitter. */
 export const TENTATIVAS_DE_FETCH = 3
@@ -81,6 +86,12 @@ export type Repositorio = {
   conteudoEmCache(urlHash: string): Promise<ConteudoEmCache | null>
   /** Grava a etapa atual — é o que a barra de progresso lê. */
   marcarEtapa(importId: string, status: EtapaDoPipeline): Promise<void>
+  /**
+   * Encerra a tentativa apontando para a vaga que já existia. Sem isto a linha
+   * ficaria em `queued` para sempre e quem acompanha o progresso esperaria por
+   * um trabalho que ninguém vai fazer.
+   */
+  marcarDuplicada(importId: string, vaga: VagaJaCadastrada): Promise<void>
   guardarConteudo(
     importId: string,
     dados: { rawContent: string; sourceSite: string },
@@ -197,7 +208,10 @@ export async function executarPipeline(
     const urlHash = hashDaUrl(entrada.url)
 
     const jaCadastrada = await repositorio.vagaPorHash(urlHash)
-    if (jaCadastrada) return { estado: 'duplicada', vaga: jaCadastrada }
+    if (jaCadastrada) {
+      await repositorio.marcarDuplicada(entrada.importId, jaCadastrada)
+      return { estado: 'duplicada', vaga: jaCadastrada }
+    }
 
     // ---- Etapa 2: aquisição de conteúdo ---------------------------------
     await repositorio.marcarEtapa(entrada.importId, 'fetching')

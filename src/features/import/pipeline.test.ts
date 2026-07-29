@@ -66,6 +66,7 @@ function repositorioFalso(sobrescritas: Partial<Repositorio> = {}): Repositorio 
     vagaPorHash: vi.fn(async () => null),
     conteudoEmCache: vi.fn(async () => null),
     marcarEtapa: vi.fn(async () => {}),
+    marcarDuplicada: vi.fn(async () => {}),
     guardarConteudo: vi.fn(async () => {}),
     persistir: vi.fn(async () => ({ jobId: 'vaga-1', slug: 'backend-aurora-a1b2c3' })),
     falhar: vi.fn(async () => {}),
@@ -251,6 +252,14 @@ describe('executarPipeline — dedup e cache', () => {
     expect(resultado).toMatchObject({ estado: 'duplicada' })
     expect(buscar).not.toHaveBeenCalled()
     expect(repositorio.marcarEtapa).not.toHaveBeenCalled()
+
+    // Ninguém espera o retorno: o pipeline roda em segundo plano (doc 02), e
+    // quem acompanha lê a linha. Sem esta marcação ela ficaria em `queued` e a
+    // barra de progresso esperaria por um trabalho que já acabou.
+    expect(repositorio.marcarDuplicada).toHaveBeenCalledWith(
+      ENTRADA.importId,
+      expect.objectContaining({ id: 'vaga-9', slug: 'ja-existe-a1b2c3' }),
+    )
   })
 
   it('retoma do cache sem bater no board de novo', async () => {
