@@ -13,7 +13,8 @@ export default function HomePage() {
       </section>
 
       <article className="border-border bg-card hover:border-primary hover:shadow-glow w-full max-w-md rounded-md border p-6 text-left transition duration-150 hover:-translate-y-0.5">
-        <p className="text-caption text-subtle-foreground">Em construção</p>
+        {/* subtle-foreground só atende contraste AA em texto grande ou bold (doc 03). */}
+        <p className="text-caption text-muted-foreground">Em construção</p>
         <h2 className="text-h3 mt-1 font-semibold">
           A plataforma está sendo construída em público
         </h2>
@@ -25,7 +26,7 @@ export default function HomePage() {
           {TECNOLOGIAS.map((tecnologia) => (
             <li
               key={tecnologia}
-              className="bg-surface text-subtle-foreground rounded-full px-3 py-1 font-mono text-xs"
+              className="bg-surface text-muted-foreground rounded-full px-3 py-1 font-mono text-xs"
             >
               {tecnologia}
             </li>
