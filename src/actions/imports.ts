@@ -190,6 +190,7 @@ export async function processarImportacao(
           models: ai.models,
           jsonSchema,
           orcamentoRestanteMs,
+          ...(ai.baseURL ? { baseURL: ai.baseURL } : {}),
         }),
     },
   )

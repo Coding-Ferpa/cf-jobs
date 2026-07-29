@@ -28,6 +28,12 @@ export const serverEnvSchema = z.object({
   NVIDIA_API_KEY: z.string().min(1).optional(),
   NVIDIA_API_KEY_FALLBACK: z.string().min(1).optional(),
 
+  // Endpoint compatível com a API OpenAI. O padrão é o NIM da NVIDIA (doc 05);
+  // existe como variável porque um deploy da comunidade pode apontar para
+  // outro provedor compatível — e porque é assim que o E2E fala com um dublê
+  // local em vez de gastar chamada de verdade.
+  AI_BASE_URL: z.url().optional(),
+
   // Cascata de modelos, tentados nesta ordem (doc 05).
   AI_MODEL_PRIMARY: z.string().min(1).default('z-ai/glm-5.2'),
   AI_MODEL_SECONDARY: z.string().min(1).default('moonshotai/kimi-k2.6'),
@@ -113,6 +119,8 @@ export type AiEnv = {
   /** Cascata de modelos, na ordem de tentativa. */
   models: [string, string, string]
   monthlyTokenBudget: number | null
+  /** `undefined` = o endpoint padrão do NIM. */
+  baseURL: string | undefined
 }
 
 export function resolveAiEnv(env: ServerEnv): AiEnv {
@@ -133,6 +141,7 @@ export function resolveAiEnv(env: ServerEnv): AiEnv {
         : [env.NVIDIA_API_KEY],
     models: [env.AI_MODEL_PRIMARY, env.AI_MODEL_SECONDARY, env.AI_MODEL_FALLBACK],
     monthlyTokenBudget: env.AI_MONTHLY_TOKEN_BUDGET ?? null,
+    baseURL: env.AI_BASE_URL,
   }
 }
 

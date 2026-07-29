@@ -3,7 +3,9 @@
 import {
   Briefcase,
   Building2,
+  DownloadCloud,
   LayoutDashboard,
+  Lightbulb,
   Tags,
   Users,
   type LucideIcon,
@@ -37,22 +39,44 @@ const ITENS: Item[] = [
     papelMinimo: 'editor',
   },
   {
+    href: '/admin/importacoes',
+    rotulo: 'Importações',
+    icone: DownloadCloud,
+    papelMinimo: 'editor',
+  },
+  {
     href: '/admin/taxonomias',
     rotulo: 'Taxonomias',
     icone: Tags,
     papelMinimo: 'editor',
   },
+  {
+    // Item próprio, e não um link dentro de Taxonomias: é a tela que a
+    // moderação revisa, e o papel dela não abre o CRUD (doc 04).
+    href: '/admin/taxonomias/sugestoes',
+    rotulo: 'Sugestões',
+    icone: Lightbulb,
+    papelMinimo: 'moderator',
+  },
   { href: '/admin/usuarios', rotulo: 'Usuários', icone: Users, papelMinimo: 'admin' },
 ]
 
-/** `/admin` só casa exato; as demais casam com as subrotas. */
-function estaAtivo(pathname: string, href: string): boolean {
-  return href === '/admin' ? pathname === href : pathname.startsWith(href)
+/**
+ * `/admin` só casa exato; as demais casam com as subrotas — e vence a mais
+ * específica, senão `/admin/taxonomias/sugestoes` acenderia dois itens.
+ */
+function hrefAtivo(pathname: string, itens: Item[]): string | null {
+  const candidatos = itens.filter((item) =>
+    item.href === '/admin' ? pathname === item.href : pathname.startsWith(item.href),
+  )
+
+  return candidatos.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null
 }
 
 export function AdminNav({ papel }: { papel: UserRole }) {
   const pathname = usePathname()
   const visiveis = ITENS.filter((item) => hasRole(papel, item.papelMinimo))
+  const ativoAgora = hrefAtivo(pathname, visiveis)
 
   return (
     <nav
@@ -60,7 +84,7 @@ export function AdminNav({ papel }: { papel: UserRole }) {
       className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
     >
       {visiveis.map((item) => {
-        const ativo = estaAtivo(pathname, item.href)
+        const ativo = item.href === ativoAgora
         const Icone = item.icone
 
         return (

@@ -75,9 +75,14 @@ export default async function AdminJobsPage({
           </p>
         </div>
 
-        <Button asChild>
-          <Link href="/admin/vagas/nova">Nova vaga</Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href="/admin/vagas/importar">Importar por URL</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/vagas/nova">Nova vaga</Link>
+          </Button>
+        </div>
       </header>
 
       <AdminJobFilters />

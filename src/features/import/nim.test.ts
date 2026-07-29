@@ -84,6 +84,44 @@ function cliente(config: Partial<ConfigDoNim> & { buscar: typeof fetch }) {
 
 const MENSAGENS = [{ role: 'user' as const, content: 'oi' }]
 
+describe('mensagem de sistema', () => {
+  /**
+   * A SDK v7 recusa `role: 'system'` dentro de `messages`. O `classify` sempre
+   * manda um, e por isso este teste existe: sem ele, a suíte passava e toda
+   * importação de verdade falhava com "System messages are not allowed".
+   */
+  it('vai na opção própria e chega ao corpo como mensagem de sistema', async () => {
+    const { buscar, chamadas } = servidorFalso([respostaOk()])
+    const nim = cliente({ buscar })
+
+    await nim.gerar([
+      { role: 'system', content: 'Você é um extrator.' },
+      { role: 'user', content: 'a vaga' },
+    ])
+
+    const mensagens = chamadas[0]?.corpo.messages as { role: string; content: string }[]
+
+    expect(mensagens.map((m) => m.role)).toEqual(['system', 'user'])
+    expect(mensagens[0]?.content).toBe('Você é um extrator.')
+  })
+
+  it('junta mais de um system numa instrução só', async () => {
+    const { buscar, chamadas } = servidorFalso([respostaOk()])
+    const nim = cliente({ buscar })
+
+    await nim.gerar([
+      { role: 'system', content: 'Regra um.' },
+      { role: 'system', content: 'Regra dois.' },
+      { role: 'user', content: 'a vaga' },
+    ])
+
+    const mensagens = chamadas[0]?.corpo.messages as { role: string; content: string }[]
+
+    expect(mensagens).toHaveLength(2)
+    expect(mensagens[0]?.content).toBe('Regra um.\n\nRegra dois.')
+  })
+})
+
 describe('rodízio de chaves', () => {
   it('alterna a chave a cada chamada', async () => {
     const { buscar, chamadas } = servidorFalso([respostaOk()])

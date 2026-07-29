@@ -153,6 +153,46 @@ export async function buscarImportacao(id: string): Promise<StatusDaImportacao |
   return (linha as StatusDaImportacao | undefined) ?? null
 }
 
+export type ImportacaoDaVaga = {
+  id: string
+  url: string
+  sourceSite: string | null
+  model: string | null
+  tokensIn: number | null
+  tokensOut: number | null
+  latencyMs: number | null
+  attempt: number
+  aiResponse: unknown
+  createdAt: Date
+}
+
+/**
+ * A importação que gerou a vaga, para a tela de revisão (doc 08). Aqui o
+ * `ai_response` **é** necessário: é com ele que a tela compara o que a IA leu
+ * com o que virou vaga.
+ */
+export async function importacaoDaVaga(jobId: string): Promise<ImportacaoDaVaga | null> {
+  const [linha] = await db
+    .select({
+      id: jobImports.id,
+      url: jobImports.url,
+      sourceSite: jobImports.sourceSite,
+      model: jobImports.model,
+      tokensIn: jobImports.tokensIn,
+      tokensOut: jobImports.tokensOut,
+      latencyMs: jobImports.latencyMs,
+      attempt: jobImports.attempt,
+      aiResponse: jobImports.aiResponse,
+      createdAt: jobImports.createdAt,
+    })
+    .from(jobImports)
+    .where(eq(jobImports.jobId, jobId))
+    .orderBy(desc(jobImports.createdAt))
+    .limit(1)
+
+  return linha ?? null
+}
+
 export type LinhaDeImportacao = StatusDaImportacao & {
   jobTitle: string | null
   companyName: string | null

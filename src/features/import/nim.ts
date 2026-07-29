@@ -149,9 +149,21 @@ export class ClienteNim {
       ...(this.config.buscar ? { fetch: this.config.buscar } : {}),
     })
 
+    // A SDK v7 recusa `role: 'system'` dentro de `messages` e exige o texto na
+    // opção própria — ela é quem monta a mensagem de sistema no formato de
+    // cada provedor. Descoberto pelo E2E: os testes de unidade mockavam a
+    // chamada acima desta camada e nunca mandavam um system.
+    const instrucoes = mensagens
+      .filter((mensagem) => mensagem.role === 'system')
+      .map((mensagem) => mensagem.content)
+      .join('\n\n')
+
+    const conversa = mensagens.filter((mensagem) => mensagem.role !== 'system')
+
     const resposta = await generateText({
       model: provedor.chatModel(modelo),
-      messages: mensagens,
+      ...(instrucoes.length > 0 ? { system: instrucoes } : {}),
+      messages: conversa,
       temperature: 0.1,
       maxOutputTokens: 2048,
       // A cascata é nossa: o retry da SDK atrapalharia a contagem de tentativas
