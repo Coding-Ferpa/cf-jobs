@@ -16,7 +16,7 @@ import {
  * modelos, descoberta do `guided_json` e a espera longa.
  *
  * O mock é um `fetch` injetado — assim o teste vê o que sai de verdade na
- * requisição (cabeçalho de autorização, corpo com `nvext`), em vez de confiar
+ * requisição (cabeçalho de autorização, corpo com `response_format`), em vez de confiar
  * numa camada de mentira acima da SDK.
  */
 
@@ -256,33 +256,55 @@ describe('cascata de modelos', () => {
   })
 })
 
-describe('guided_json verificado empiricamente', () => {
+describe('decoding restrito verificado empiricamente', () => {
   const schema = { type: 'object', properties: {} }
 
-  it('manda nvext na primeira chamada', async () => {
+  /**
+   * O recurso é `response_format: json_schema`, e não o `nvext.guided_json` do
+   * doc 05: medido com as chaves reais, o segundo não existe mais no endpoint
+   * (ADR-0017).
+   */
+  it('manda response_format na primeira chamada', async () => {
     const { buscar, chamadas } = servidorFalso([respostaOk()])
 
     await cliente({ buscar, jsonSchema: schema }).gerar(MENSAGENS)
 
-    expect(chamadas[0]?.corpo.nvext).toEqual({ guided_json: schema })
+    expect(chamadas[0]?.corpo.response_format).toEqual({
+      type: 'json_schema',
+      json_schema: { name: 'vaga', schema },
+    })
   })
 
-  it('aprende que o modelo não suporta e repete sem nvext', async () => {
+  it('aprende que o modelo não suporta e repete sem a restrição', async () => {
     const { buscar, chamadas } = servidorFalso([
-      respostaErro(400, 'nvext.guided_json is not supported by this model'),
+      respostaErro(400, 'unknown field response_format for this model'),
       respostaOk(),
     ])
     const nim = cliente({ buscar, jsonSchema: schema })
 
     const resultado = await nim.gerar(MENSAGENS)
 
-    expect(chamadas[0]?.corpo.nvext).toBeDefined()
-    expect(chamadas[1]?.corpo.nvext).toBeUndefined()
+    expect(chamadas[0]?.corpo.response_format).toBeDefined()
+    expect(chamadas[1]?.corpo.response_format).toBeUndefined()
     expect(resultado.guidedJson).toBe(false)
     expect(nim.suporte('modelo-a')).toBe(false)
   })
 
-  it('não tenta nvext de novo no mesmo modelo depois de aprender', async () => {
+  /** O endpoint antigo reclamava por outro nome; a detecção cobre os dois. */
+  it('reconhece também a reclamação antiga por nvext', async () => {
+    const { buscar, chamadas } = servidorFalso([
+      respostaErro(400, 'nvext.guided_json: unknown field `guided_json`'),
+      respostaOk(),
+    ])
+    const nim = cliente({ buscar, jsonSchema: schema })
+
+    await nim.gerar(MENSAGENS)
+
+    expect(chamadas[1]?.corpo.response_format).toBeUndefined()
+    expect(nim.suporte('modelo-a')).toBe(false)
+  })
+
+  it('não tenta de novo no mesmo modelo depois de aprender', async () => {
     const { buscar, chamadas } = servidorFalso([
       respostaErro(400, 'guided decoding unavailable'),
       respostaOk(),
@@ -293,10 +315,10 @@ describe('guided_json verificado empiricamente', () => {
     await nim.gerar(MENSAGENS)
     await nim.gerar(MENSAGENS)
 
-    expect(chamadas[2]?.corpo.nvext).toBeUndefined()
+    expect(chamadas[2]?.corpo.response_format).toBeUndefined()
   })
 
-  it('anota o suporte quando a chamada com nvext dá certo', async () => {
+  it('anota o suporte quando a chamada restrita dá certo', async () => {
     const { buscar } = servidorFalso([respostaOk()])
     const nim = cliente({ buscar, jsonSchema: schema })
 
@@ -306,12 +328,12 @@ describe('guided_json verificado empiricamente', () => {
     expect(nim.suporte('modelo-a')).toBe(true)
   })
 
-  it('sem schema configurado, nvext nunca sai', async () => {
+  it('sem schema configurado, a restrição nunca sai', async () => {
     const { buscar, chamadas } = servidorFalso([respostaOk()])
 
     await cliente({ buscar }).gerar(MENSAGENS)
 
-    expect(chamadas[0]?.corpo.nvext).toBeUndefined()
+    expect(chamadas[0]?.corpo.response_format).toBeUndefined()
   })
 })
 

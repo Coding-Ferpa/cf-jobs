@@ -102,8 +102,11 @@ type LinhaComAliases = {
  *
  * Roda pela conexão da aplicação e não como `anon`: quem autoriza é a action
  * que chamou o pipeline, e taxonomia inativa fica de fora aqui do mesmo jeito.
+ *
+ * Exportada sem o cache para quem roda fora de uma requisição do Next — o
+ * `unstable_cache` exige contexto de requisição e estoura em script.
  */
-async function lerListasParaOPrompt(): Promise<ListasDeOpcoes> {
+export async function lerListasParaOPrompt(): Promise<ListasDeOpcoes> {
   const resultado = await db.execute<LinhaComAliases>(sql`
     select 'technologies' as grupo, slug, label, kind::text as kind, aliases, sort_order
       from public.technologies where is_active

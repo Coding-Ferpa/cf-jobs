@@ -51,7 +51,7 @@ Regras de fetch: timeout 15s, `User-Agent` identificado (`CFJobsBot/1.0 (+https:
 | Terciário | `minimaxai/minimax-m3` (`AI_MODEL_FALLBACK`) | última tentativa antes da espera longa |
 | `temperature` | 0.1 | extração determinística |
 | `max_tokens` | 2048 | JSON de resposta cabe com folga |
-| `nvext.guided_json` | JSON Schema abaixo | decoding restrito ao schema (recurso NIM) — elimina JSON inválido na origem. Suporte varia por modelo: verificar empiricamente por modelo na primeira chamada real e registrar a flag; sem suporte → JSON mode simples + Zod |
+| Decoding restrito | JSON Schema abaixo, em `response_format: json_schema` | restringe a saída ao schema — elimina JSON inválido na origem. Suporte verificado empiricamente por modelo na primeira chamada real, com a flag registrada; sem suporte → JSON mode simples + Zod. **O `nvext.guided_json` não existe mais no endpoint** ([ADR-0017](adr/0017-response-format-no-lugar-de-nvext-guided-json.md)) |
 | Timeout | 45s por chamada | modelos grandes podem demorar sob carga |
 | Chaves de API | `NVIDIA_API_KEY` e `NVIDIA_API_KEY_FALLBACK` em **rotação round-robin a cada chamada** | distribui o consumo de RPM entre as duas contas; em `429`/`401` numa chave, a chamada seguinte usa a outra |
 
@@ -115,7 +115,7 @@ CONTEÚDO DA VAGA (Markdown):
 Retorne o JSON conforme o schema.
 ```
 
-### JSON Schema da resposta (usado em `guided_json` E espelhado em Zod)
+### JSON Schema da resposta (usado em `response_format` E espelhado em Zod)
 
 ```json
 {
@@ -165,7 +165,7 @@ Retorne o JSON conforme o schema.
 
 ### Validação em camadas (defesa em profundidade)
 
-1. `guided_json` restringe o decoding (quando o modelo suporta; se o NIM retornar erro de suporte, repete sem `nvext` — flag registrada).
+1. `response_format: json_schema` restringe o decoding (quando o modelo suporta; se o NIM retornar erro de suporte, repete sem a restrição — flag registrada). Ver [ADR-0017](adr/0017-response-format-no-lugar-de-nvext-guided-json.md).
 2. Parse + **Zod** com o mesmo schema (fonte de verdade: Zod; o JSON Schema é gerado dele via `z.toJSONSchema()` para nunca divergirem).
 3. **Validação semântica pós-parse**: slugs retornados existem mesmo nas listas? `salary_min <= salary_max`? `description_md` não é cópia do prompt? `confidence >= 0.5` (abaixo disso a importação vai para `review` com alerta vermelho "baixa confiança" na UI).
 4. Falha de parse/validação → **1 retry de reparo**: reenvia com a resposta inválida + erros do Zod anexados ("corrija e retorne apenas o JSON"). Persiste `attempt=2`.

@@ -1,3 +1,7 @@
+-- As contagens de "vê" são pelo id da linha que este arquivo inseriu, e não
+-- pelo total da tabela: o banco local acumula dados de E2E e de verificação
+-- manual, e um total absoluto transformaria isso em falha de RLS que não é.
+--
 -- Matriz RLS da superfície administrativa: pipeline, sugestões, auditoria,
 -- agregados, eventos e perfis (docs 04 e 07).
 
@@ -105,10 +109,18 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","user_role":"moderator"}';
 
-select is((select count(*) from public.job_imports), 1::bigint, 'moderator vê importações');
-select is((select count(*) from public.taxonomy_suggestions), 1::bigint, 'moderator vê sugestões');
-select is((select count(*) from public.audit_logs), 1::bigint, 'moderator vê auditoria');
-select is((select count(*) from public.job_stats_daily), 1::bigint, 'moderator vê agregados');
+select is(
+  (select count(*) from public.job_imports where id = 'b0000000-0000-4000-8000-000000000001'),
+  1::bigint, 'moderator vê importações');
+select is(
+  (select count(*) from public.taxonomy_suggestions where id = 'd0000000-0000-4000-8000-000000000001'),
+  1::bigint, 'moderator vê sugestões');
+select is(
+  (select count(*) from public.audit_logs where entity_id = 'a0000000-0000-4000-8000-000000000001'),
+  1::bigint, 'moderator vê auditoria');
+select is(
+  (select count(*) from public.job_stats_daily where job_id = 'a0000000-0000-4000-8000-000000000001'),
+  1::bigint, 'moderator vê agregados');
 
 with revisado as (
   update public.taxonomy_suggestions
@@ -170,7 +182,9 @@ with promovido as (
 )
 select is((select count(*) from promovido), 1::bigint, 'admin altera papel de outra pessoa');
 
-select is((select count(*) from public.job_events), 1::bigint, 'admin lê eventos de analytics');
+select is(
+  (select count(*) from public.job_events where job_id = 'a0000000-0000-4000-8000-000000000001'),
+  1::bigint, 'admin lê eventos de analytics');
 
 -- Auditoria é insert-only: nem admin reescreve o histórico.
 select throws_ok(

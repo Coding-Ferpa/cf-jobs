@@ -11,10 +11,15 @@ import { APICallError, generateText, type JSONValue } from 'ai'
  *    sai pela outra — que é o comportamento que o doc 05 pede.
  * 2. **Cascata de modelos.** Primário → secundário → terciário, com a
  *    tentativa registrada para o painel.
- * 3. **`guided_json` verificado empiricamente.** O suporte varia por modelo e
- *    não há como consultar: manda-se uma vez, e a resposta ensina. A flag fica
- *    em memória do processo — errar para "tem suporte" custa uma repetição,
- *    errar para "não tem" custa qualidade em toda chamada seguinte.
+ * 3. **Decoding restrito verificado empiricamente.** O suporte varia por
+ *    modelo e não há como consultar: manda-se uma vez, e a resposta ensina. A
+ *    flag fica em memória do processo — errar para "tem suporte" custa uma
+ *    repetição, errar para "não tem" custa qualidade em toda chamada seguinte.
+ *
+ * O recurso enviado é `response_format: json_schema`, e não o
+ * `nvext.guided_json` que o doc 05 nomeia: medido com as chaves reais, o
+ * `guided_json` não existe mais no endpoint, e o `response_format` faz o mesmo
+ * efeito nos modelos disponíveis ([ADR-0017](../../../docs/adr/0017-response-format-no-lugar-de-nvext-guided-json.md)).
  */
 
 export const ENDPOINT = 'https://integrate.api.nvidia.com/v1'
@@ -72,7 +77,7 @@ export type ResultadoDaChamada = {
 export type ConfigDoNim = {
   apiKeys: string[]
   models: [string, string, string]
-  /** JSON Schema do `nvext.guided_json`; ausente desliga o recurso. */
+  /** JSON Schema do `response_format`; ausente desliga a restrição. */
   jsonSchema?: Record<string, unknown>
   baseURL?: string
   /** Injetado nos testes; em produção é o `fetch` da plataforma. */
@@ -89,15 +94,18 @@ function dormirDeVerdade(ms: number): Promise<void> {
 }
 
 /**
- * Erro de `guided_json` não suportado. O NIM devolve 400 com a reclamação no
- * corpo; a mensagem varia por modelo, então o reconhecimento é por palavra e
- * não por texto exato.
+ * Erro de decoding restrito não suportado. O NIM devolve 400 com a reclamação
+ * no corpo; a mensagem varia por modelo, então o reconhecimento é por palavra
+ * e não por texto exato. `guided_json` e `nvext` seguem na lista porque um
+ * endpoint mais antigo ainda pode reclamar por esses nomes.
  */
-export function pareceSemSuporteAGuidedJson(erro: unknown): boolean {
+export function pareceSemSuporteAoSchema(erro: unknown): boolean {
   if (!APICallError.isInstance(erro) || erro.statusCode !== 400) return false
 
   const corpo = `${erro.responseBody ?? ''} ${erro.message}`.toLowerCase()
   return (
+    corpo.includes('response_format') ||
+    corpo.includes('json_schema') ||
     corpo.includes('nvext') ||
     corpo.includes('guided_json') ||
     corpo.includes('guided decoding')
@@ -117,7 +125,7 @@ function ehTimeout(erro: unknown): boolean {
 export class ClienteNim {
   /** Posição do rodízio; avança a cada chamada, com ou sem erro. */
   private proximaChave = 0
-  private readonly suporteAGuidedJson = new Map<string, boolean>()
+  private readonly suporteAoSchema = new Map<string, boolean>()
 
   constructor(private readonly config: ConfigDoNim) {
     if (config.apiKeys.length === 0) {
@@ -127,7 +135,7 @@ export class ClienteNim {
 
   /** `undefined` = ainda não testado neste processo. */
   suporte(modelo: string): boolean | undefined {
-    return this.suporteAGuidedJson.get(modelo)
+    return this.suporteAoSchema.get(modelo)
   }
 
   private girarChave(): { chave: string; indice: number } {
@@ -164,7 +172,7 @@ export class ClienteNim {
   private async chamar(
     modelo: string,
     mensagens: Mensagem[],
-    comGuidedJson: boolean,
+    comSchema: boolean,
   ): Promise<{ resultado: ResultadoDaChamada; indice: number }> {
     const { chave, indice } = this.girarChave()
     const agora = this.config.agora ?? Date.now
@@ -199,9 +207,16 @@ export class ClienteNim {
       maxRetries: 0,
       abortSignal: AbortSignal.timeout(this.timeoutDaChamada()),
       // O provider OpenAI-compatible repassa `providerOptions[name]` para o
-      // corpo da requisição — é por aí que o `nvext` do NIM chega.
-      providerOptions: comGuidedJson
-        ? { nvidia: { nvext: { guided_json: this.config.jsonSchema as JSONValue } } }
+      // corpo da requisição — é por aí que o `response_format` chega.
+      providerOptions: comSchema
+        ? {
+            nvidia: {
+              response_format: {
+                type: 'json_schema',
+                json_schema: { name: 'vaga', schema: this.config.jsonSchema },
+              } as unknown as JSONValue,
+            },
+          }
         : {},
     })
 
@@ -213,7 +228,7 @@ export class ClienteNim {
         chave: indice,
         tokensIn: resposta.usage?.inputTokens ?? 0,
         tokensOut: resposta.usage?.outputTokens ?? 0,
-        guidedJson: comGuidedJson,
+        guidedJson: comSchema,
         tentativas: 1,
         latenciaMs: agora() - inicio,
       },
@@ -241,15 +256,15 @@ export class ClienteNim {
       try {
         tentativas += 1
         const { resultado } = await this.chamar(modelo, mensagens, quer)
-        if (quer) this.suporteAGuidedJson.set(modelo, true)
+        if (quer) this.suporteAoSchema.set(modelo, true)
         return { ...resultado, tentativas }
       } catch (erro) {
         ultimoErro = erro
 
-        // Descoberta do suporte: anota e repete já sem `nvext`, sem gastar
-        // uma das tentativas de erro real.
-        if (quer && pareceSemSuporteAGuidedJson(erro)) {
-          this.suporteAGuidedJson.set(modelo, false)
+        // Descoberta do suporte: anota e repete já sem a restrição, sem
+        // gastar uma das tentativas de erro real.
+        if (quer && pareceSemSuporteAoSchema(erro)) {
+          this.suporteAoSchema.set(modelo, false)
           tentativa -= 1
           continue
         }
