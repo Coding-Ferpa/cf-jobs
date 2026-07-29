@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm'
 import type { NextRequest } from 'next/server'
-import { z } from 'zod'
 
 import { queryAsAnon } from '@/db/client'
-import { consumirLimite } from '@/db/queries/rate-limit'
+import { limitarCliente } from '@/db/queries/rate-limit'
 import { origemPermitida } from '@/lib/api/http'
 import {
   entradaInvalida,
@@ -12,11 +11,8 @@ import {
   limiteExcedido,
   proibido,
 } from '@/lib/api/problem'
-import {
-  cabecalhosDeLimite,
-  chaveDeLimite,
-  LIMITE_DE_EVENTOS,
-} from '@/lib/api/rate-limit'
+import { cabecalhosDeLimite, LIMITE_DE_EVENTOS } from '@/lib/api/rate-limit'
+import { eventoSchema } from '@/lib/api/schemas'
 import { clientEnv, requireAnalyticsSalt } from '@/lib/env'
 import { ipDaRequisicao, visitorHash } from '@/lib/visitor'
 
@@ -31,13 +27,6 @@ import { ipDaRequisicao, visitorHash } from '@/lib/visitor'
 
 const INSTANCIA = '/api/v1/events'
 
-const corpoSchema = z.object({
-  job_slug: z.string().min(1).max(200),
-  event_type: z.enum(['view', 'click_apply', 'share']),
-  referrer: z.string().max(500).optional(),
-  utm_source: z.string().max(100).optional(),
-})
-
 export async function POST(request: NextRequest) {
   // Diferente das leituras, o beacon é do próprio site (doc 06).
   if (!origemPermitida(request.headers.get('origin'), clientEnv().NEXT_PUBLIC_SITE_URL)) {
@@ -51,7 +40,7 @@ export async function POST(request: NextRequest) {
     return entradaInvalida(INSTANCIA, 'O corpo precisa ser JSON.')
   }
 
-  const entrada = corpoSchema.safeParse(corpo)
+  const entrada = eventoSchema.safeParse(corpo)
   if (!entrada.success) {
     return entradaInvalida(INSTANCIA, 'Confira job_slug e event_type.')
   }
@@ -75,10 +64,9 @@ export async function POST(request: NextRequest) {
   const { job_slug: slug, event_type: tipo, referrer, utm_source: utm } = entrada.data
 
   try {
-    const limite = await consumirLimite(
-      chaveDeLimite('events', hashDoVisitante),
-      LIMITE_DE_EVENTOS,
-    )
+    // O limite é por IP (doc 07), e não pelo hash do visitante: este rotaciona
+    // por dia e por user agent, então serviria de gargalo para ninguém.
+    const limite = await limitarCliente(request.headers, 'events', LIMITE_DE_EVENTOS)
     const cabecalhos = cabecalhosDeLimite(limite)
 
     if (!limite.permitido) return limiteExcedido(INSTANCIA, cabecalhos)

@@ -43,6 +43,14 @@ Bateria de qualidade:
 pnpm lint && pnpm typecheck && pnpm test
 ```
 
+## API pública
+
+Leitura de vagas e taxonomias, aberta e sem chave — é o que alimenta integrações da comunidade, como o bot do Discord. A referência navegável fica em `/api/v1/docs` e o contrato em `/api/v1/openapi.json` (OpenAPI 3.1 gerado dos mesmos schemas Zod dos handlers).
+
+```bash
+curl "http://localhost:3000/api/v1/jobs?tech=go&limit=5"
+```
+
 ## Documentação
 
 A especificação técnica completa vive em [`docs/`](docs/README.md) e é a fonte da verdade do projeto.

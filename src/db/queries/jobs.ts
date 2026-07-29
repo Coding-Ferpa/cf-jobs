@@ -35,6 +35,9 @@ export type JobFilters = {
   limit?: number
 }
 
+/** Espelha o enum `public.salary_period` (0002). */
+export type SalaryPeriod = 'hour' | 'month' | 'year'
+
 export type TaxonomyRef = { slug: string; label: string }
 
 export type JobTechnologyRef = TaxonomyRef & { isPrimary: boolean }
@@ -53,7 +56,7 @@ export type JobListItem = {
     min: string | null
     max: string | null
     currency: string | null
-    period: string
+    period: SalaryPeriod
   }
   technologies: JobTechnologyRef[]
   tags: TaxonomyRef[]
@@ -292,7 +295,7 @@ type LinhaDeCard = {
   salaryMin: string | null
   salaryMax: string | null
   salaryCurrency: string | null
-  salaryPeriod: string
+  salaryPeriod: SalaryPeriod
   companyName: string
   companySlug: string
   companyLogoUrl: string | null

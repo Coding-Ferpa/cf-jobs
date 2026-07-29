@@ -17,6 +17,7 @@ Cada escolha abaixo foi avaliada contra os objetivos do projeto: **alta performa
 | Agendamento | **pg_cron (Supabase)** | Vercel Cron, Supabase Edge Functions |
 | Mutations admin | **Server Actions** | API REST interna |
 | API pública | **Route Handlers (`/api/v1`)** | tRPC, GraphQL |
+| Contrato da API | **zod-openapi + UI Scalar** ([doc 06](06-apis.md)) | escrever o YAML à mão, Swagger UI, Redoc |
 | IA | **NVIDIA NIM via Vercel AI SDK** | — (requisito NVIDIA) |
 | Rate limit | **Postgres (função SQL) + Vercel WAF** | Upstash Redis |
 | Analytics | **First-party no Postgres + Vercel Analytics** | PostHog (fase 3), Plausible |

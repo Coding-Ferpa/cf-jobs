@@ -17,6 +17,9 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'next-env.d.ts',
+      // Bundle da UI Scalar, copiado no build (scripts/copy-scalar.ts): é
+      // artefato de terceiro, não código nosso.
+      'public/scalar/**',
     ],
   },
 

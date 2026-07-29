@@ -1,5 +1,7 @@
 import type { JobDetail, JobListItem } from '@/db/queries/jobs'
 
+import type { VagaPublica, VagaPublicaDetalhe } from './schemas'
+
 /**
  * Tradução do modelo interno para o corpo público da API v1 (doc 06).
  *
@@ -7,54 +9,9 @@ import type { JobDetail, JobListItem } from '@/db/queries/jobs'
  * fronteira onde os dois se encontram — renomear campo interno não pode
  * quebrar contrato de terceiro sem passar por aqui.
  *
- * Taxonomias saem como slug: é o mesmo valor que se usa para filtrar, então
- * quem lê uma vaga já sabe como pedir as parecidas. O rótulo humano vem de
- * `/api/v1/taxonomies`, uma vez, em vez de repetido em cada vaga.
+ * O formato de saída é o inferido dos schemas de `schemas.ts`, os mesmos que
+ * geram o OpenAPI: se o corpo divergir do contrato publicado, não compila.
  */
-
-export type TecnologiaPublica = {
-  slug: string
-  label: string
-  is_primary: boolean
-}
-
-export type VagaPublica = {
-  slug: string
-  title: string
-  company: { name: string; slug: string; logo_url: string | null }
-  summary: string | null
-  role_category: string | null
-  seniority: string | null
-  work_mode: string | null
-  contract_type: string | null
-  location: { city: string | null; state: string | null; country: string | null }
-  salary: {
-    min: number | null
-    max: number | null
-    currency: string | null
-    period: string
-  }
-  technologies: TecnologiaPublica[]
-  tags: string[]
-  status: 'published' | 'archived'
-  published_at: string | null
-  expires_at: string | null
-  url: string
-}
-
-export type VagaPublicaDetalhe = VagaPublica & {
-  description_md: string
-  benefits: string[]
-  keywords: string[]
-  language: string
-  apply_url: string
-  source_url: string
-  source_site: string | null
-  views_count: number
-  clicks_count: number
-  updated_at: string
-  archived_at: string | null
-}
 
 /**
  * `numeric` chega do driver como texto para não perder precisão. Salário cabe
