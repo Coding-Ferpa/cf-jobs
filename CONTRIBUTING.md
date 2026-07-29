@@ -114,6 +114,8 @@ Comente na issue avisando que vai pegá-la, para ninguém duplicar trabalho.
 - TypeScript estrito; `any` só com comentário justificando.
 - UI sempre em **pt-BR**; o conteúdo da vaga preserva o idioma original.
 - Componentes não acessam o banco — recebem dados por props de Server Components.
+- **shadcn/ui e Radix são do admin.** A área pública usa HTML nativo para caber no orçamento de JS do [doc 12](docs/12-qualidade.md) — o ESLint bloqueia o import fora do admin. Ao regerar um componente, releia [`src/components/ui/README.md`](src/components/ui/README.md): há edições locais a reaplicar.
+- Toda mutação do admin é Server Action e passa por `defineAction` — o esqueleto encadeia sessão, Zod, papel, auditoria e `revalidateTag`. Escrever direto no banco pula a auditoria.
 - Toda entrada externa passa por Zod; toda URL de usuário passa por `safe-fetch`.
 - Nunca commite segredos. `.env` está no `.gitignore` e deve continuar assim.
 
