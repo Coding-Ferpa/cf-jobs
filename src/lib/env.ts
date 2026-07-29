@@ -26,6 +26,11 @@ export const serverEnvSchema = z.object({
   AI_MODEL_FALLBACK: z.string().min(1).default('mistralai/mistral-small-24b-instruct'),
   CRON_SECRET: z.string().min(16),
 
+  // Sal do visitor_hash (doc 07). Opcional no boot pelo mesmo motivo da chave
+  // da NVIDIA: quem contribui com UI não precisa dele para o app subir. Quem
+  // exige é o endpoint de eventos, no ponto de uso.
+  ANALYTICS_SALT: z.string().min(16).optional(),
+
   // Opcionais: sem elas o login com GitHub simplesmente não é oferecido. Os
   // nomes são os que a CLI do Supabase lê em config.toml, então o mesmo par de
   // variáveis configura o provider local e a detecção do recurso no app.
@@ -119,6 +124,21 @@ export function resolveAiEnv(env: ServerEnv): AiEnv {
  */
 export function requireAiEnv(): AiEnv {
   return resolveAiEnv(serverEnv())
+}
+
+export function resolveAnalyticsSalt(env: ServerEnv): string {
+  if (!env.ANALYTICS_SALT) {
+    throw new Error(
+      'ANALYTICS_SALT não está definida e o registro de eventos depende dela ' +
+        'para anonimizar o visitante. Gere um valor aleatório longo e adicione ao .env.',
+    )
+  }
+
+  return env.ANALYTICS_SALT
+}
+
+export function requireAnalyticsSalt(): string {
+  return resolveAnalyticsSalt(serverEnv())
 }
 
 /**

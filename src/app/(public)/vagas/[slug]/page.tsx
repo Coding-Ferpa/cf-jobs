@@ -3,6 +3,8 @@ import { unstable_cache } from 'next/cache'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { ApplyButton } from '@/components/jobs/apply-button'
+import { JobBeacon } from '@/components/jobs/job-beacon'
 import { JobCard } from '@/components/jobs/job-card'
 import { JobMarkdown } from '@/components/jobs/job-markdown'
 import { JobShare } from '@/components/jobs/job-share'
@@ -73,6 +75,8 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <article className="flex flex-col gap-8 py-8">
+      <JobBeacon slug={vaga.slug} />
+
       {/* Dados estruturados do doc 08: é o que habilita o Google for Jobs. */}
       <script
         dangerouslySetInnerHTML={{
@@ -168,14 +172,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
               Candidaturas encerradas
             </p>
           ) : (
-            <a
-              className="bg-primary-solid hover:shadow-glow rounded-full px-6 py-3 text-center font-semibold text-white transition duration-150"
-              href={vaga.applyUrl}
-              rel="noopener nofollow"
-              target="_blank"
-            >
-              Candidatar-se
-            </a>
+            <ApplyButton applyUrl={vaga.applyUrl} slug={vaga.slug} />
           )}
 
           <dl className="border-border flex flex-col gap-3 rounded-md border p-4">
