@@ -26,6 +26,7 @@ supabase/.branches/
 # editores e SO
 .vscode/*
 !.vscode/extensions.json
+.claude/
 .idea/
 .DS_Store
 Thumbs.db

@@ -1,1 +1,107 @@
 @import 'tailwindcss';
+
+/*
+ * Tokens do design system (doc 03). O tema escuro é o padrão — é a identidade
+ * da comunidade. O tema claro já existe como sobrescrita por `data-theme`;
+ * o alternador e a persistência em cookie chegam no M3.
+ */
+:root {
+  color-scheme: dark;
+
+  --background: #0d0d0d;
+  --card: #161616;
+  --surface: #1e1e1e;
+  --border: #262626;
+  --primary: #8b5cf6;
+  --primary-muted: #c4b5fd;
+  --foreground: #f5f5f5;
+  --muted-foreground: #a3a3a3;
+  --subtle-foreground: #737373;
+  --success: #22c55e;
+  --warning: #eab308;
+  --destructive: #ef4444;
+
+  --container-max: 96rem;
+  --header-height: 4.5rem;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --background: #fafafa;
+  --card: #ffffff;
+  --surface: #f4f4f5;
+  --border: #e4e4e7;
+  --primary: #7c3aed;
+  --primary-muted: #a78bfa;
+  --foreground: #18181b;
+  --muted-foreground: #52525b;
+  --subtle-foreground: #71717a;
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --destructive: #dc2626;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-muted: var(--primary-muted);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Escala tipográfica herdada do site da comunidade. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.1;
+  --text-h2: 2.25rem;
+  --text-h2--line-height: 1.2;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.3;
+  --text-body: 1.125rem;
+  --text-body--line-height: 1.7;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.5;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-full: 9999px;
+
+  /* O glow violeta é o momento de marca: hover de JobCard, CTA do hero e sucesso. */
+  --shadow-glow: 0 0 20px rgb(139 92 246 / 0.4);
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Foco sempre visível (requisito de acessibilidade, doc 08). */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
