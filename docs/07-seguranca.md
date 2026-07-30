@@ -57,6 +57,8 @@ create policy pf_update_own on profiles for update
 
 Regras adicionais: `service_role` usado **exclusivamente** dentro de Server Actions que já validaram sessão+papel — nunca em Route Handlers públicos; `anon key` só faz o que as policies acima permitem.
 
+**Funções `security definer` não são cobertas por RLS** — rodam como dona, e no Supabase `anon` e `authenticated` viram endpoint pelo PostgREST (`/rest/v1/rpc/nome`). Como o Postgres concede `execute` a `public` em toda função nova, **toda rotina de manutenção precisa de `revoke execute ... from anon, authenticated, public`** na mesma migration que a cria (0007 para `custom_access_token`, 0012 para as do cron). A exceção é `check_rate_limit`, chamada pela aplicação com `set local role anon` — e ela não destrói nada. O pgTAP afirma as duas coisas, porque o padrão do Postgres joga contra.
+
 ## Proteção do pipeline de importação (superfície mais sensível)
 
 - **SSRF** (detalhado no [doc 05](05-pipeline-ia.md)): allowlist de esquema, resolução DNS com bloqueio de faixas privadas/metadata **antes e após cada redirect**, limite de 3 redirects, resposta máx. 5 MB, content-type allowlist, timeout 15s. Implementação centralizada em `lib/safe-fetch.ts` — único caminho permitido para fetch de URL externa fornecida por usuário (regra de lint proíbe `fetch` direto em `features/import`).
