@@ -64,6 +64,13 @@ export function SerieDeEngajamento({ pontos }: { pontos: PontoDaSerie[] }) {
       <div className="h-64 w-full min-w-0 overflow-hidden">
         <ResponsiveContainer height="100%" width="100%">
           <AreaChart
+            // O Recharts 3 liga a navegação por teclado sozinho, e ela carimba
+            // `role="application" tabindex="0"` no SVG. Junto com o
+            // `aria-hidden` daria um elemento escondido do leitor de tela e
+            // alcançável pelo Tab ao mesmo tempo — violação séria de WCAG, e
+            // foi o axe do E2E quem apontou. Quem responde por acessibilidade
+            // aqui é a tabela abaixo.
+            accessibilityLayer={false}
             aria-hidden="true"
             data={pontos}
             margin={{ left: -16, right: 8, top: 8 }}
