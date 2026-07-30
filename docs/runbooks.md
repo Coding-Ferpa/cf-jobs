@@ -18,7 +18,7 @@ A ordem importa: cada passo depende do anterior existir.
 |---|---|---|
 | 1 | Supabase | Criar projeto, região `sa-east-1` (São Paulo) |
 | 2 | Supabase | Extensões, migrations e o seed de taxonomias |
-| 3 | Supabase | Custom Access Token Hook, `app.revalidate_url`, `app.cron_secret`, pg_cron |
+| 3 | Supabase | Custom Access Token Hook, os dois segredos do Vault, pg_cron |
 | 4 | GitHub | Environment `producao` com os segredos do `deploy-db.yml` |
 | 5 | Vercel | Importar o repositório, Node 24.x, variáveis, **desligar deploy automático de produção** |
 | 6 | Sentry | Projeto, DSN e token de upload de source map |
@@ -55,7 +55,7 @@ uma exige novo deploy, não basta salvar.
 | `AI_BASE_URL` | não | **Deixar vazio.** Existe para apontar a outro provedor compatível e para o dublê do E2E |
 | `AI_MODEL_PRIMARY` / `_SECONDARY` / `_FALLBACK` | não | **Deixar vazio** para usar a cascata sondada no M6.1 ([ADR-0017](adr/0017-response-format-no-lugar-de-nvext-guided-json.md)) |
 | `AI_MONTHLY_TOKEN_BUDGET` | não | Opcional, decisão do mantenedor. Sem ela o painel acompanha o consumo e não bloqueia nada |
-| `CRON_SECRET` | **sim** | Gerar aleatório de 32+ caracteres. **O mesmo valor vai no banco** como `app.cron_secret` (seção 3) |
+| `CRON_SECRET` | **sim** | Gerar aleatório de 32+ caracteres. **O mesmo valor vai no Vault** como `cfjobs_cron_secret` (seção 3.2) |
 | `ANALYTICS_SALT` | **sim** | Gerar aleatório de 32+ caracteres. Trocar depois zera a deduplicação de visitantes — os números do dia da troca ficam inflados |
 | `NEXT_PUBLIC_SENTRY_DSN` | não | Sentry → projeto → Client Keys (DSN). Público por construção: serve para enviar evento, não para ler |
 | `SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID` | não | GitHub → Developer settings → OAuth Apps. Sem ela o botão "Entrar com GitHub" não aparece |
@@ -98,26 +98,49 @@ apontando para `public.custom_access_token`.
 Verificação: entrar no admin com uma conta promovida a `admin` e abrir
 `/admin/usuarios`. Se a lista aparece, o hook está no ar.
 
-### 3.2 `app.revalidate_url` e `app.cron_secret`
+### 3.2 Os dois segredos do Vault
 
 O `notify_revalidate()` avisa a Vercel para revalidar o cache quando o cron
-arquiva vagas. Ele lê as duas por `current_setting(..., true)` e **retorna sem
-fazer nada quando faltam** — em local e no CI é o comportamento desejado; em
-produção significa vaga arquivada continuar aparecendo na home até o próximo
-deploy, sem erro em lugar nenhum.
+arquiva vagas. Ele lê a URL e o segredo do **Vault** e **retorna sem fazer nada
+quando faltam** — em local e no CI é o comportamento desejado; em produção
+significa vaga arquivada continuar aparecendo na home até o próximo deploy, sem
+erro em lugar nenhum.
 
-No SQL Editor do Supabase, uma vez:
+> Até o M8 o mecanismo era `alter database ... set app.*`. Ele não funciona no
+> Supabase: o papel `postgres` não é superusuário e o comando exige isso
+> ([ADR-0018](adr/0018-vault-no-lugar-de-alter-database-set.md)).
+
+No SQL Editor, uma vez — ou pelo painel em Settings → Vault:
 
 ```sql
-alter database postgres set app.revalidate_url = 'https://SEU-DOMINIO/api/internal/revalidate';
-alter database postgres set app.cron_secret    = 'O-MESMO-VALOR-DE-CRON_SECRET';
+select vault.create_secret(
+  'https://SEU-DOMINIO/api/internal/revalidate',
+  'cfjobs_revalidate_url',
+  'Endpoint que o cron avisa depois de arquivar vagas'
+);
+
+select vault.create_secret(
+  'O-MESMO-VALOR-DE-CRON_SECRET',
+  'cfjobs_cron_secret',
+  'Bearer do endpoint de revalidação'
+);
 ```
 
-Depois: **reiniciar o projeto** (Settings → General → Restart), porque
-`alter database` só vale em conexões novas.
+Para **trocar** um valor depois (a criação falha se o nome já existir):
 
-Verificação: `select current_setting('app.revalidate_url', true);` devolve a
-URL em uma sessão nova.
+```sql
+select vault.update_secret(id, 'novo-valor')
+  from vault.secrets where name = 'cfjobs_cron_secret';
+```
+
+Verificação — mostra que existem, sem revelar o segredo:
+
+```sql
+select name, created_at from vault.secrets where name like 'cfjobs_%';
+```
+
+Não precisa reiniciar o projeto: a leitura é por consulta, não por parâmetro de
+sessão.
 
 ### 3.3 pg_cron ativo
 
@@ -248,6 +271,6 @@ pode ser ajustada ou removida — a variável é opcional.
 2. Gerar a nova e colar na Vercel.
 3. Redeploy. `NEXT_PUBLIC_*` exige build novo; as demais valem na próxima
    invocação.
-4. Se for `CRON_SECRET`, trocar também o `app.cron_secret` no banco (seção 3.2)
-   e reiniciar o projeto — senão o cron passa a bater na porta com a senha
-   errada e a revalidação para, silenciosamente.
+4. Se for `CRON_SECRET`, trocar também o `cfjobs_cron_secret` do Vault (seção
+   3.2) — senão o cron passa a bater na porta com a senha errada e a
+   revalidação para, silenciosamente.

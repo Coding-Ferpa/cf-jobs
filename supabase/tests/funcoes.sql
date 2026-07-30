@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(30);
 
 -- Cenário conhecido, independente do que o seed traz (rollback no fim).
 delete from public.jobs;
@@ -247,6 +247,14 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.archive_expired_jobs()', 'execute'),
   'anon não executa archive_expired_jobs'
+);
+
+-- Dispara POST autenticado a partir do banco (ADR-0018): com grant para `anon`,
+-- qualquer um com a chave anônima bateria no endpoint de revalidação com o
+-- token correto, quantas vezes quisesse.
+select ok(
+  not has_function_privilege('anon', 'public.notify_revalidate()', 'execute'),
+  'anon não executa notify_revalidate'
 );
 
 -- A exceção, e o motivo dela: quem chama o rate limit é a aplicação dentro de

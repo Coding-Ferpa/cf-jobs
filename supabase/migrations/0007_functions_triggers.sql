@@ -198,9 +198,10 @@ revoke execute on function public.custom_access_token(jsonb) from authenticated,
 -- Rotinas agendadas (o agendamento em si está em 0009)
 -- ---------------------------------------------------------------------------
 
--- Avisa a Vercel para revalidar o cache. As configurações são definidas por
--- ambiente (`alter database ... set app.revalidate_url = ...`); sem elas — como
--- em local e no CI — a função não tenta rede.
+-- Avisa a Vercel para revalidar o cache. **A 0013 trocou o mecanismo para o
+-- Vault** (ADR-0018): o `alter database ... set app.*` que este corpo lê exige
+-- superusuário e não funciona no Supabase. Sem as configurações — como em local
+-- e no CI — a função não tenta rede, e isso não mudou.
 create function public.notify_revalidate()
 returns void
 language plpgsql
