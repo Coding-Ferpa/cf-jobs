@@ -24,6 +24,7 @@ Os documentos são numerados na ordem recomendada de leitura. Cada um é autocon
 | [12 — Qualidade e Testes](12-qualidade.md) | Estratégia de testes, Lighthouse, a11y |
 | [13 — Roadmap](13-roadmap.md) | Fases 1–10 com prioridades e critérios de pronto |
 | [14 — Prompt de Execução (Opus 5)](14-prompt-de-execucao-opus-5.md) | Plano de implementação fase a fase para o agente executor |
+| [Runbooks](runbooks.md) | Operação: ida ao ar, variáveis de ambiente, o que vive fora do repositório e o que fazer quando quebra |
 
 ## Resumo executivo das decisões
 
