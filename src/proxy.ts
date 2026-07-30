@@ -23,6 +23,7 @@ export async function proxy(request: NextRequest) {
     nonce,
     isDev: process.env.NODE_ENV === 'development',
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   })
 
   // A validação das variáveis fica depois da CSP: a área pública responde mesmo

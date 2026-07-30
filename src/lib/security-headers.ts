@@ -37,14 +37,36 @@ export type ContentSecurityPolicyOptions = {
   isDev: boolean
   /** Origem do Supabase, liberada em `connect-src` para auth e queries. */
   supabaseUrl?: string
+  /**
+   * DSN do Sentry, quando configurado (doc 09). A origem dele precisa entrar
+   * em `connect-src`, senão a CSP bloqueia o envio do erro e a captura fica
+   * silenciosamente morta — descoberto ao verificar o envio contra um
+   * receptor local, que não recebeu nada.
+   */
+  sentryDsn?: string
 }
 
 const SELF = "'self'"
+
+/**
+ * Origem de uma URL, ou `undefined` se ela não for válida. Um DSN mal colado
+ * não pode derrubar a CSP inteira: a resposta certa é não liberar nada.
+ */
+function origemDe(url: string | undefined): string | undefined {
+  if (!url) return undefined
+
+  try {
+    return new URL(url).origin
+  } catch {
+    return undefined
+  }
+}
 
 export function buildContentSecurityPolicy({
   nonce,
   isDev,
   supabaseUrl,
+  sentryDsn,
 }: ContentSecurityPolicyOptions): string {
   const scriptSrc = nonce
     ? [SELF, `'nonce-${nonce}'`, "'strict-dynamic'"]
@@ -53,6 +75,12 @@ export function buildContentSecurityPolicy({
 
   const connectSrc = [SELF]
   if (supabaseUrl) connectSrc.push(supabaseUrl)
+
+  // Só a origem: o DSN carrega a chave pública no userinfo, e ela não tem por
+  // que aparecer em um cabeçalho de resposta.
+  const origemDoSentry = origemDe(sentryDsn)
+  if (origemDoSentry) connectSrc.push(origemDoSentry)
+
   if (isDev) connectSrc.push('ws:')
 
   const directives: [string, string[]][] = [

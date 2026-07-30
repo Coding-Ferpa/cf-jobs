@@ -39,6 +39,8 @@ Gráficos com **Recharts** (leve, composable, tema custom violeta: séries em `#
 
 - **Logs estruturados** com `pino` (JSON): toda importação loga por etapa com `import_id`; actions logam `action`, `actor`, `entity`. Visíveis no painel da Vercel (runtime logs); formato JSON permite Log Drain futuro sem retrabalho.
 - **Erros de runtime**: **Sentry (free tier)** desde a Fase 1 — captura server/client, source maps no build, alertas por e-mail. Justificativa: bug silencioso em pipeline de IA é o risco nº 1 do produto; o custo de integração é meia hora. DSN opcional por env (deploys da comunidade funcionam sem).
+  - **Estado no M7:** captura implementada nos dois lados (`instrumentation.ts` com `onRequestError` no servidor, `instrumentation-client.ts` no navegador). Sem `NEXT_PUBLIC_SENTRY_DSN` o SDK não é sequer baixado — o import é dinâmico. A origem do DSN entra em `connect-src`: sem isso a CSP do doc 07 barra o envio e a captura fica silenciosamente morta (medido contra um receptor local).
+  - **Falta para o M8:** upload de source map no build. Ele exige `SENTRY_AUTH_TOKEN`, organização e projeto — credenciais que só existem quando a conta for criada na ida para produção — e `pnpm approve-builds` para o `@sentry/cli`. Até lá, o stack trace chega minificado.
 - **Auditoria de negócio**: `audit_logs` ([doc 04](04-banco-de-dados.md)) — quem publicou/editou/aprovou o quê, com diff.
 - **Uptime**: monitor externo gratuito (UptimeRobot/BetterStack free) em `/` e `/api/v1/jobs?limit=1` — documentado no runbook, fora do código.
 

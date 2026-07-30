@@ -68,6 +68,30 @@ describe('buildContentSecurityPolicy', () => {
       "connect-src 'self' https://projeto.supabase.co",
     )
   })
+
+  /**
+   * Sem esta liberação a captura de erro do doc 09 fica silenciosamente morta:
+   * o SDK carrega, monta o evento e a CSP barra o envio. Descoberto medindo —
+   * um receptor local no lugar do ingest não recebeu nada.
+   */
+  it('libera a origem do Sentry, e só a origem', () => {
+    const csp = buildContentSecurityPolicy({
+      isDev: false,
+      sentryDsn: 'https://chavepublica@o4507.ingest.sentry.io/12345',
+    })
+
+    expect(directive(csp, 'connect-src')).toBe(
+      "connect-src 'self' https://o4507.ingest.sentry.io",
+    )
+    // A chave pública do DSN não tem por que vazar para um cabeçalho.
+    expect(csp).not.toContain('chavepublica')
+  })
+
+  it('ignora DSN inválido em vez de derrubar a política', () => {
+    const csp = buildContentSecurityPolicy({ isDev: false, sentryDsn: 'nao-e-url' })
+
+    expect(directive(csp, 'connect-src')).toBe("connect-src 'self'")
+  })
 })
 
 describe('staticSecurityHeaders', () => {

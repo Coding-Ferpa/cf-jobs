@@ -38,6 +38,7 @@
     "@hookform/resolvers": "^5.5.7",
     "@mozilla/readability": "^0.6.0",
     "@scalar/nextjs-api-reference": "0.11.11",
+    "@sentry/nextjs": "^10.69.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.111.0",
     "ai": "^7.0.41",
