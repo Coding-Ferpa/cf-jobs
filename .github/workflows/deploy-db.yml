@@ -47,7 +47,7 @@ jobs:
 
       # Compatibilidade com o deploy anterior (doc 11). Roda aqui e não só no
       # CI porque é aqui que o comando destrutivo alcançaria produção.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - uses: pnpm/action-setup@v4
