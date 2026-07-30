@@ -1,0 +1,78 @@
+# Changelog
+
+## 1.0.0 (2026-07-30)
+
+
+### Features
+
+* **actions:** CRUD de vagas, empresas, taxonomias e papéis ([f8d41df](https://github.com/Coding-Ferpa/cf-jobs/commit/f8d41df7d4e516c3ce03c4d06d35e95b20c3d10b))
+* **actions:** esqueleto padrão das Server Actions do admin ([cb7ed4f](https://github.com/Coding-Ferpa/cf-jobs/commit/cb7ed4f487ed02970b900e908f8df47936f5afcb))
+* **admin:** boundary de erro do segmento em pt-BR ([78aa71f](https://github.com/Coding-Ferpa/cf-jobs/commit/78aa71fc0c3dea927c9f50a302ac416ebb91a625))
+* **admin:** painéis de audiência, saúde e série temporal ([472469a](https://github.com/Coding-Ferpa/cf-jobs/commit/472469a21cc55d757f09e26e68f3a7f08273d8ef))
+* **admin:** painel de tokens, custo e observabilidade da importação ([5095d1e](https://github.com/Coding-Ferpa/cf-jobs/commit/5095d1ef2cd6c2c0df29f301536aa91a486e8ed1))
+* **admin:** painel, CRUD de vagas, empresas, taxonomias e usuários ([d9f9924](https://github.com/Coding-Ferpa/cf-jobs/commit/d9f9924debc50b19d19eb333f2594d1625f682a3))
+* **admin:** shadcn/ui restrito ao admin, com sidebar fixa ([c1aec76](https://github.com/Coding-Ferpa/cf-jobs/commit/c1aec76e67f028f0454aee6cc52834a7d8723996))
+* **analytics:** beacon de eventos first-party ([65206bc](https://github.com/Coding-Ferpa/cf-jobs/commit/65206bcfed0af9e09298c9cace3d819d1ab051ed))
+* **analytics:** leituras do painel e limiares de saúde ([0bfe685](https://github.com/Coding-Ferpa/cf-jobs/commit/0bfe6858feff8959caeb89a01c12292017bce2ee))
+* **analytics:** poda dos eventos crus e rollup validado com dados reais ([776a01c](https://github.com/Coding-Ferpa/cf-jobs/commit/776a01c1187f5b34b6f5b478860a7234c1cae23a))
+* **api:** GET /api/v1/jobs e /api/v1/jobs/{slug} ([0066739](https://github.com/Coding-Ferpa/cf-jobs/commit/00667393a79e081aa6658a973548822a5d1097dc))
+* **api:** GET /api/v1/taxonomies ([ed49ac5](https://github.com/Coding-Ferpa/cf-jobs/commit/ed49ac5b002756447a1fe651bc4d664052e9a23c))
+* **api:** infra compartilhada da v1 — Problem Details, CORS e rate limit ([3edf800](https://github.com/Coding-Ferpa/cf-jobs/commit/3edf8006e849311eb4568047c170b1b22144cc28))
+* **api:** OpenAPI 3.1 gerado dos schemas e UI Scalar em /api/v1/docs ([09f6a1b](https://github.com/Coding-Ferpa/cf-jobs/commit/09f6a1b1db8c62b9234d224ed77ef478604ce42d))
+* **auth:** clientes do Supabase, papéis e sessão no middleware ([ded22d3](https://github.com/Coding-Ferpa/cf-jobs/commit/ded22d31643419f4229a45de24c6d6859f664e8f))
+* **auth:** login por e-mail, GitHub OAuth e guard do admin ([9aab814](https://github.com/Coding-Ferpa/cf-jobs/commit/9aab8148f6cf299654724d8440f72663e031c55b))
+* **config:** valida variáveis de ambiente com Zod ([cc700cc](https://github.com/Coding-Ferpa/cf-jobs/commit/cc700cc2e1bd46245bac8a863ce33eabe8417cce))
+* **db:** leituras do admin com contagem de uso por taxonomia ([11cefd9](https://github.com/Coding-Ferpa/cf-jobs/commit/11cefd98a0987680e451986bca51ff58d60c539d))
+* **db:** migration 0004 com perfis, empresas, vagas e junções ([37ba261](https://github.com/Coding-Ferpa/cf-jobs/commit/37ba2613183989eb006cc063c3a525e754c6cf6a))
+* **db:** migration 0007 com funções, triggers e views ([7b74dae](https://github.com/Coding-Ferpa/cf-jobs/commit/7b74daede5ba3a1b082a5df939488b5b7f05757a))
+* **db:** migration 0008 com RLS em todas as tabelas ([c47bd83](https://github.com/Coding-Ferpa/cf-jobs/commit/c47bd830897ec2690d90498d3acdd1838b7fef45))
+* **db:** migration 0009 com pg_cron e seed das taxonomias ([01c9bfb](https://github.com/Coding-Ferpa/cf-jobs/commit/01c9bfbd6382e2762a87ec8d8c7f65e1bbb1c247))
+* **db:** migrations 0001-0003 com extensões, enums e lookups ([5f7630a](https://github.com/Coding-Ferpa/cf-jobs/commit/5f7630a2a628bc39a092214f72b39192f76d86ac))
+* **db:** migrations 0005-0006 com pipeline, eventos e auditoria ([a9d6f70](https://github.com/Coding-Ferpa/cf-jobs/commit/a9d6f705aa29e9f922d1df2127ef965ed6fc7bd1))
+* **db:** queries públicas com filtros, cursor e facetas ([b4a0478](https://github.com/Coding-Ferpa/cf-jobs/commit/b4a04785027878c648a7e3a63cae63bfde3fdb8b))
+* **db:** schema Drizzle espelhando o banco e cliente de leitura ([9d309e6](https://github.com/Coding-Ferpa/cf-jobs/commit/9d309e66e47c500c5c822dad632c32a361bc60e3))
+* **db:** separa o seed que vai a produção do que é só desenvolvimento ([238a3cf](https://github.com/Coding-Ferpa/cf-jobs/commit/238a3cf65d2d06ba7c5611bba93f3b30c326ae0d))
+* **db:** slug de vaga e seed com vagas de exemplo ([6f033bb](https://github.com/Coding-Ferpa/cf-jobs/commit/6f033bb9048df80f16d764aed6dade0d575163a2))
+* **home:** busca, filtros na URL e listagem de vagas ([427f6ec](https://github.com/Coding-Ferpa/cf-jobs/commit/427f6eca3a57dff0339bc0ef5a71a0e5cc9ca94d))
+* **home:** filtros passam a viver em painel atrás do botão de funil ([a96f7b1](https://github.com/Coding-Ferpa/cf-jobs/commit/a96f7b16185146b6310f64a339409b19cdc08d96))
+* **i18n:** locale pt-BR do Zod aplicado em toda validação ([ed8be8c](https://github.com/Coding-Ferpa/cf-jobs/commit/ed8be8c7ac8d1ee118c1cae8f33c3d619d36fae5))
+* **import:** adapters Greenhouse, Lever, Ashby e Gupy ([6d352cb](https://github.com/Coding-Ferpa/cf-jobs/commit/6d352cbb9afcfc6039dbe9735b56fbf7705d6fdf))
+* **import:** classificação por IA com cascata tripla e chave dupla ([66f25bf](https://github.com/Coding-Ferpa/cf-jobs/commit/66f25bffe45494d79a83fa6ac45930d63af93149))
+* **import:** decoding restrito por response_format e verificação real ([a337a10](https://github.com/Coding-Ferpa/cf-jobs/commit/a337a106ac9625f6f0e81d16032cd25f338d14f7))
+* **import:** dedup por hash da URL e cache de conteúdo de 24h ([57f523f](https://github.com/Coding-Ferpa/cf-jobs/commit/57f523f891a15546d9a7a2aae9a62b92178b5c78))
+* **import:** extração genérica em cascata — JSON-LD, Readability, Markdown ([2f339d9](https://github.com/Coding-Ferpa/cf-jobs/commit/2f339d9aef00b9e4f7db0860cbeb3c36f1c50c93))
+* **import:** mapeamento de taxonomias com exato, alias e trigram ([3f22457](https://github.com/Coding-Ferpa/cf-jobs/commit/3f22457cfb445aae74abb13f1f98b4414f8267d9))
+* **import:** orçamento do pipeline derivado do teto da rota ([1e6557c](https://github.com/Coding-Ferpa/cf-jobs/commit/1e6557c20d29678d4b5b97c02da6b32e69209d57))
+* **import:** orquestração do pipeline com máquina de estados e orçamento ([7366fcf](https://github.com/Coding-Ferpa/cf-jobs/commit/7366fcf7d92c239942c8ab9e15d8499362559231))
+* **import:** pipeline em segundo plano na mesma invocação ([f9adca6](https://github.com/Coding-Ferpa/cf-jobs/commit/f9adca64904236a1651a05755f3196789d73576f))
+* **import:** safe-fetch anti-SSRF como único caminho de rede ([ab51535](https://github.com/Coding-Ferpa/cf-jobs/commit/ab5153515b17798fe8e6e7df031d807e19b3e78b))
+* **import:** sonda a cascata antes de fixar os padrões ([166fb2b](https://github.com/Coding-Ferpa/cf-jobs/commit/166fb2b73e00e0cf0574b59e881f225282fab136))
+* **import:** telas de importação, revisão e fila de sugestões ([764fda0](https://github.com/Coding-Ferpa/cf-jobs/commit/764fda072972c8eded21959ac56c2716f3166bc9))
+* **observabilidade:** Sentry opcional por env ([6ecc41c](https://github.com/Coding-Ferpa/cf-jobs/commit/6ecc41cda80fe90da24bb1fe86e17428e1b53501))
+* **observabilidade:** source map no build e tela de erro global ([4380a3d](https://github.com/Coding-Ferpa/cf-jobs/commit/4380a3d6ebf6682f8e0ef315cc48cabe2537ce2e))
+* **seo:** metadata, JSON-LD, sitemap, robots e imagem de compartilhamento ([8e9f16f](https://github.com/Coding-Ferpa/cf-jobs/commit/8e9f16f18ba835e6c4fe643d42799b916442c2d3))
+* **ui:** adota o token primary-solid nos controles preenchidos ([fbdca6e](https://github.com/Coding-Ferpa/cf-jobs/commit/fbdca6ef6864f465c37b6d3aaa217ded8d055e0b))
+* **ui:** aplica os tokens do design system na página inicial ([ce91e26](https://github.com/Coding-Ferpa/cf-jobs/commit/ce91e26d03eb9d7bcb47127ec12bf174d8287227))
+* **ui:** cards de altura uniforme e nova captura do README ([003facc](https://github.com/Coding-Ferpa/cf-jobs/commit/003facce1678dfd9331f9f2dfe8d47d70f2e3d90))
+* **ui:** header, footer e alternador de tema ([b9c860d](https://github.com/Coding-Ferpa/cf-jobs/commit/b9c860d4059f1054d323573b89c616fb9c5bb929))
+* **vaga:** página de vaga com prosa sanitizada e compartilhamento ([bd7fab4](https://github.com/Coding-Ferpa/cf-jobs/commit/bd7fab4e0908a04fafa135c111e039f73e8641b1))
+
+
+### Bug Fixes
+
+* **admin:** gráfico escondido do leitor de tela não pode receber foco ([e4c4019](https://github.com/Coding-Ferpa/cf-jobs/commit/e4c401997dff93dfad3b16be4ae97f7de3062706))
+* **admin:** id inválido é 404, e o tipo de tecnologia sai em pt-BR ([e9f4285](https://github.com/Coding-Ferpa/cf-jobs/commit/e9f4285243c4992276677dd895e758128706dc71))
+* **auth:** sair encerra só a sessão atual, não todas as da pessoa ([1b3d701](https://github.com/Coding-Ferpa/cf-jobs/commit/1b3d701b967494b6e6d18566b9c192ae30b503ab))
+* **db:** active_jobs no Drizzle espelha a view inteira ([b49167b](https://github.com/Coding-Ferpa/cf-jobs/commit/b49167be222440fc8ec240ab4b94aace45126688))
+* **db:** configurações do notify_revalidate saem do Vault ([cc4f184](https://github.com/Coding-Ferpa/cf-jobs/commit/cc4f1847fe0195feeba8208731c2386aa4c5c37f))
+* **db:** hash real da URL de origem no seed, com canonicalização ([8c056b1](https://github.com/Coding-Ferpa/cf-jobs/commit/8c056b1735667cd68476d824ab55ec249a071231))
+* **import:** orçamento dentro da cascata e progresso por rota, não por action ([d2cb32f](https://github.com/Coding-Ferpa/cf-jobs/commit/d2cb32f6965713ea953557c0b44f94238bac0515))
+* **lint:** reativa as regras do plugin react, desligadas desde o M0 ([ab17138](https://github.com/Coding-Ferpa/cf-jobs/commit/ab17138c25bcc7f7d075cee4d6c665a76e209307))
+* **security:** aplica CSP com nonce apenas nas rotas dinâmicas ([6f5df7c](https://github.com/Coding-Ferpa/cf-jobs/commit/6f5df7c6856b595ea640fe5f62c9b9f890cf01ef))
+* **seguranca:** rotinas de manutenção deixam de ser executáveis por anon ([07c681e](https://github.com/Coding-Ferpa/cf-jobs/commit/07c681ecba45464441c09725e60f714fd8f74ee7))
+* **seo:** metadata bloqueante para o &lt;head&gt; nunca sair vazio ([0a23489](https://github.com/Coding-Ferpa/cf-jobs/commit/0a234892eb06eb0f765f47177a94bfd5dd3ff07b))
+
+
+### Performance Improvements
+
+* **fonts:** JetBrains Mono com display optional zera o CLS da home ([a23d50b](https://github.com/Coding-Ferpa/cf-jobs/commit/a23d50bf33c57975cb3c7b47a661ba3066bcd201))
