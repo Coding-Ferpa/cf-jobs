@@ -1,18 +1,50 @@
 import Link from 'next/link'
 
+import { SerieDeEngajamento } from '@/components/admin/analytics-chart'
+import {
+  AteQuandoAgrega,
+  PainelDeEngajamento,
+  PainelDeOrigens,
+  PainelDeSaude,
+  PainelDeTags,
+  PainelDeTopEmpresas,
+  PainelDeTopTecnologias,
+  PainelDeTopVagas,
+  SeletorDePeriodo,
+} from '@/components/admin/analytics-panels'
 import { PainelDeImportacoes, PainelDeOrcamento } from '@/components/admin/import-panels'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDashboardSummary, listRecentAudit } from '@/db/queries/admin'
+import {
+  importacoesDasUltimas24h,
+  origemDeVisitantes,
+  resumoDeEngajamento,
+  serieDiaria,
+  topEmpresas,
+  topTags,
+  topTecnologias,
+  topVagas,
+  ultimaExecucaoDoCron,
+} from '@/db/queries/analytics'
 import { estatisticasDeImportacao } from '@/db/queries/import-stats'
+import { avaliarSaude } from '@/features/analytics/painel'
 import { avaliarOrcamento } from '@/features/import/budget'
+import { periodoValido } from '@/lib/analytics-periodos'
 import { getCurrentUser } from '@/lib/auth'
 import { serverEnv } from '@/lib/env'
 import { formatarDataRelativa } from '@/lib/format'
 import { hasRole } from '@/lib/roles'
 
-/** KPIs de `v_dashboard_summary` (doc 09) + o que aconteceu por último. */
+/**
+ * O dashboard do doc 09: saúde no topo, KPIs de `v_dashboard_summary`,
+ * engajamento e importação — e por último o que aconteceu.
+ *
+ * O período (7/30/90) chega por query string e vale para tudo o que é série ou
+ * top. Um seletor por widget daria mais liberdade e nenhuma resposta: comparar
+ * "vagas mais vistas em 7 dias" com "tecnologias procuradas em 90" não diz nada.
+ */
 
 const ROTULO_DA_ACAO: Record<string, string> = {
   'job.create': 'criou a vaga',
@@ -64,15 +96,43 @@ function Indicador({
   )
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periodo?: string }>
+}) {
   // O layout já garantiu sessão e papel mínimo; aqui só lemos para a saudação.
   const usuario = await getCurrentUser()
   const podeCurar = usuario ? hasRole(usuario.role, 'editor') : false
 
-  const [resumo, auditoria, estatisticas] = await Promise.all([
+  const dias = periodoValido((await searchParams).periodo)
+
+  const [
+    resumo,
+    auditoria,
+    estatisticas,
+    engajamento,
+    serie,
+    vagasEmDestaque,
+    empresas,
+    tecnologias,
+    tags,
+    origens,
+    importacoes24h,
+    cron,
+  ] = await Promise.all([
     getDashboardSummary(),
     listRecentAudit(8),
     estatisticasDeImportacao(),
+    resumoDeEngajamento(dias),
+    serieDiaria(dias),
+    topVagas(dias),
+    topEmpresas(dias),
+    topTecnologias(dias),
+    topTags(),
+    origemDeVisitantes(dias),
+    importacoesDasUltimas24h(),
+    ultimaExecucaoDoCron(),
   ])
 
   // O teto é opcional (doc 05): sem ele o painel continua mostrando consumo e
@@ -81,6 +141,14 @@ export default async function AdminDashboardPage() {
     tokensIn: estatisticas.tokensInDoMes,
     tokensOut: estatisticas.tokensOutDoMes,
     teto: serverEnv().AI_MONTHLY_TOKEN_BUDGET ?? null,
+  })
+
+  const saude = avaliarSaude({
+    importacoes: importacoes24h,
+    sugestoesPendentes: resumo.suggestionsPending,
+    orcamento,
+    cron,
+    agora: new Date(),
   })
 
   return (
@@ -101,6 +169,13 @@ export default async function AdminDashboardPage() {
           </Button>
         ) : null}
       </header>
+
+      <section aria-labelledby="titulo-saude" className="flex flex-col gap-3">
+        <h2 className="text-caption font-semibold" id="titulo-saude">
+          Saúde
+        </h2>
+        <PainelDeSaude badges={saude} />
+      </section>
 
       <section aria-labelledby="titulo-indicadores" className="flex flex-col gap-3">
         <h2 className="text-caption font-semibold" id="titulo-indicadores">
@@ -127,6 +202,39 @@ export default async function AdminDashboardPage() {
             valor={resumo.suggestionsPending}
           />
           <Indicador titulo="Vagas rejeitadas" valor={resumo.jobsRejected} />
+        </div>
+      </section>
+
+      <section aria-labelledby="titulo-audiencia" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-caption font-semibold" id="titulo-audiencia">
+            Audiência
+          </h2>
+          <SeletorDePeriodo atual={dias} base="/admin" />
+        </div>
+
+        <PainelDeEngajamento dias={dias} resumo={engajamento} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-muted-foreground text-caption font-medium">
+              Visualizações e cliques por dia
+            </CardTitle>
+            <AteQuandoAgrega ultimoDia={engajamento.ultimoDia} />
+          </CardHeader>
+          <CardContent>
+            <SerieDeEngajamento pontos={serie} />
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <PainelDeTopVagas vagas={vagasEmDestaque} />
+          <PainelDeTopEmpresas empresas={empresas} />
+          <PainelDeTopTecnologias tecnologias={tecnologias} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 lg:gap-3">
+            <PainelDeOrigens origens={origens} />
+            <PainelDeTags tags={tags} />
+          </div>
         </div>
       </section>
 
