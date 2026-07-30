@@ -188,7 +188,7 @@ RLS **habilitado em todas as tabelas**, service_role bypassa (usado só em Serve
 
 - Migrations em `supabase/migrations/*.sql`, numeradas e ordenadas: `0001_extensions`, `0002_enums`, `0003_lookups`, `0004_companies_jobs`, `0005_imports_suggestions`, `0006_events_stats_audit`, `0007_functions_triggers`, `0008_rls`, `0009_cron`,
 `0010_rate_limit_headers`, `0011_prune_job_events`. Drizzle gera as DDL de tabelas; RLS/funções/cron são SQL manual **no mesmo diretório e mesma sequência** (uma única linha de verdade aplicada por `supabase db push` local e CI).
-- `supabase/seed.sql` pré-popula (com slugs estáveis e aliases):
+- `supabase/seeds/01-taxonomias.sql` pré-popula (com slugs estáveis e aliases) — é o único seed aplicado em produção:
   - **work_modes**: remoto, híbrido, presencial.
   - **contract_types**: CLT, PJ, freelancer, contractor (internacional), estágio.
   - **seniority_levels** (com rank): estágio, júnior, pleno, sênior, especialista, staff, principal.

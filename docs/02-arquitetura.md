@@ -146,7 +146,7 @@ cfjobs/
 │   └── actions/                # Server Actions por domínio
 ├── supabase/
 │   ├── migrations/             # SQL: schema + RLS + triggers + cron
-│   ├── seed.sql                # taxonomias pré-populadas
+│   ├── seeds/                  # 01 taxonomias (vai a produção) + 02 dev
 │   └── config.toml
 ├── e2e/                        # Playwright
 ├── .github/                    # workflows, templates

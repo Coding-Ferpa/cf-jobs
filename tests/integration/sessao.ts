@@ -9,7 +9,8 @@ import { createServerClient } from '@supabase/ssr'
  * inteiro — inclusive o Custom Access Token Hook que injeta `user_role`, que é
  * justamente o que decide a autorização.
  *
- * As contas vêm do `supabase/seed.sql` e só existem em local e no CI.
+ * As contas vêm do `supabase/seeds/02-desenvolvimento.sql` e só existem em
+ * local e no CI.
  */
 
 export type Papel = 'admin' | 'editor' | 'moderator' | 'reader'
