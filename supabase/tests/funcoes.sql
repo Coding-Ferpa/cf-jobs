@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(29);
 
 -- Cenário conhecido, independente do que o seed traz (rollback no fim).
 delete from public.jobs;
@@ -214,6 +214,48 @@ select ok(
   (public.check_rate_limit('ip:futuro', 2, interval '1 minute')).reset_at
     > clock_timestamp(),
   'reset_at aponta para o futuro'
+);
+
+-- ---------------------------------------------------------------------------
+-- Quem pode executar as rotinas de manutenção (doc 07)
+-- ---------------------------------------------------------------------------
+--
+-- São `security definer`: rodam como dona e a RLS não as alcança. No Supabase
+-- `anon` e `authenticated` estão expostos pelo PostgREST, então grant aqui é
+-- endpoint público — e `prune_job_events(0)` apagaria os eventos de todas as
+-- vagas. A 0012 revogou; estas asserções impedem que volte por descuido, já
+-- que o Postgres concede a `public` em toda função nova.
+
+select ok(
+  not has_function_privilege('anon', 'public.prune_job_events(integer)', 'execute'),
+  'anon não executa prune_job_events'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated', 'public.prune_job_events(integer)', 'execute'
+  ),
+  'authenticated não executa prune_job_events'
+);
+select ok(
+  not has_function_privilege('anon', 'public.rollup_job_stats(date)', 'execute'),
+  'anon não executa rollup_job_stats'
+);
+select ok(
+  not has_function_privilege('anon', 'public.cleanup_imports()', 'execute'),
+  'anon não executa cleanup_imports'
+);
+select ok(
+  not has_function_privilege('anon', 'public.archive_expired_jobs()', 'execute'),
+  'anon não executa archive_expired_jobs'
+);
+
+-- A exceção, e o motivo dela: quem chama o rate limit é a aplicação dentro de
+-- `queryAsAnon`. Sem este grant, a API pública fica sem limite.
+select ok(
+  has_function_privilege(
+    'anon', 'public.check_rate_limit(text,integer,interval)', 'execute'
+  ),
+  'anon continua executando check_rate_limit'
 );
 
 select * from finish();
