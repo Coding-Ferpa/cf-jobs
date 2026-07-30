@@ -62,6 +62,8 @@ Fluxos críticos apenas (~10 specs):
 
 Breakpoints testados em E2E com viewports: 375 (mobile), 768 (tablet), 1280 (desktop). Checklist visual no PR template para mudanças de UI (screenshot mobile+desktop do preview deploy).
 
+**Limite conhecido do projeto `mobile` (medido no M7):** na emulação de dispositivo, `document.documentElement.clientWidth` responde 412 e `window.innerWidth` responde 949 — o layout usado pelo `boundingBox()` não é o mesmo em que o ponteiro é despachado, e o clique erra o alvo proporcionalmente à distância do topo da página. Alvo perto do topo funciona; alvo no meio de uma página longa cai em outro elemento. Por isso specs de **interação fundo de página** rodam só no `chromium`, com o motivo escrito na spec; as de **visibilidade** — que é o que o viewport estreito tem a dizer — rodam nos dois.
+
 ## Qualidade de código contínua
 
 - TypeScript `strict` + `noUncheckedIndexedAccess`; proibido `any` sem comentário justificando (regra ESLint).
