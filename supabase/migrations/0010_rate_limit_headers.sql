@@ -11,6 +11,8 @@
 -- expand/contract do doc 11), e duas funções iguais a menos do retorno só
 -- deixariam a dúvida de qual chamar.
 
+-- expand/contract: contract (nada havia sido deployado quando esta migration
+-- foi escrita — não existe deploy anterior chamando a assinatura antiga)
 drop function public.check_rate_limit(text, integer, interval);
 
 -- Parâmetros OUT em vez de `returns table` de propósito: assim a função

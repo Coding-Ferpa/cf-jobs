@@ -1,0 +1,92 @@
+name: Deploy do banco
+
+# Migrations **antes** do deploy da aplicação (doc 11). A ordem é o ponto: o
+# código novo pode depender de coluna nova, mas o código velho nunca pode
+# encontrar o banco sem o que ele usa. Por isso a Vercel não publica produção
+# sozinha no push — quem promove é o hook no fim deste workflow, depois de as
+# migrations passarem.
+#
+# Consequência a lembrar: **desligar o deploy automático de produção na
+# Vercel** (Git → Production Branch). Sem isso os dois correm juntos e a ordem
+# deixa de existir. Está no runbook.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/deploy-db.yml'
+  # Também manual: migration que precisa de janela, ou repetir depois de
+  # corrigir credencial, sem empurrar commit vazio.
+  workflow_dispatch:
+
+# Duas execuções aplicando migration no mesmo banco ao mesmo tempo é a receita
+# para um estado que ninguém sabe reproduzir. Sem `cancel-in-progress`: cancelar
+# no meio de um `db push` é pior que esperar.
+concurrency:
+  group: deploy-db-producao
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrar-e-promover:
+    name: Migrations e promoção do deploy
+    runs-on: ubuntu-latest
+    # O ambiente é o que permite exigir aprovação manual e restringir os
+    # segredos a este workflow (Settings → Environments → producao).
+    environment: producao
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Compatibilidade com o deploy anterior (doc 11). Roda aqui e não só no
+      # CI porque é aqui que o comando destrutivo alcançaria produção.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - name: Expand/contract nas migrations
+        run: pnpm check:migrations
+
+      - name: Conecta ao projeto
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # O que vai ser aplicado, antes de aplicar. É o registro que sobra no log
+      # quando alguém precisar entender o que mudou às 3 da manhã.
+      - name: Migrations pendentes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --dry-run
+
+      - name: Aplica as migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+      # Só agora a aplicação nova sobe. Se as migrations falharem, o passo
+      # abaixo não roda e produção segue com o código anterior — que continua
+      # funcionando, porque o banco também não mudou.
+      - name: Promove o deploy na Vercel
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK_URL não configurado — migrations aplicadas, deploy não promovido."
+            exit 1
+          fi
+          codigo=$(curl -sS -o resposta.json -w '%{http_code}' -X POST "$HOOK")
+          echo "Deploy hook respondeu $codigo"
+          cat resposta.json
+          # O hook devolve 201 com o id do job; qualquer outra coisa é falha.
+          [ "$codigo" = "201" ] || exit 1

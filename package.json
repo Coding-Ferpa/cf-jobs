@@ -31,7 +31,8 @@
     "db:test": "supabase test db",
     "prepare": "husky",
     "copy:scalar": "tsx scripts/copy-scalar.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "check:migrations": "tsx scripts/check-migrations.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.16",

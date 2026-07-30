@@ -29,6 +29,10 @@ jobs:
       - run: pnpm typecheck
       - name: .env.example em sincronia com o schema de env
         run: pnpm check:env
+      # Compatibilidade com o deploy anterior (doc 11). No PR, para a conversa
+      # acontecer na revisão e não no dia do deploy.
+      - name: Expand/contract nas migrations
+        run: pnpm check:migrations
       # Bloqueia no que vai para produção (doc 07 — A06). Avisos em dependências
       # de desenvolvimento aparecem no passo seguinte sem derrubar o PR — ver
       # docs/adr/0011-escopo-do-gate-de-pnpm-audit.md.
