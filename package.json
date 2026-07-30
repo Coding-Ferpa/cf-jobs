@@ -4,7 +4,7 @@
   "private": true,
   "description": "Plataforma open source de vagas de tecnologia da comunidade Coding Ferpa",
   "license": "MIT",
-  "packageManager": "pnpm@10.34.5",
+  "packageManager": "pnpm@11.18.0",
   "engines": {
     "node": ">=24.15"
   },
@@ -38,7 +38,7 @@
     "@hookform/resolvers": "^5.5.7",
     "@mozilla/readability": "^0.6.0",
     "@scalar/nextjs-api-reference": "0.11.11",
-    "@sentry/nextjs": "^10.69.0",
+    "@sentry/nextjs": "10.68.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.111.0",
     "ai": "^7.0.41",
@@ -92,7 +92,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.8.0",
     "husky": "9.1.7",
-    "jsdom": "30.0.1",
+    "jsdom": "30.0.0",
     "lint-staged": "17.2.0",
     "prettier": "3.9.6",
     "prettier-plugin-tailwindcss": "0.8.1",
@@ -111,18 +111,6 @@
     ],
     "*.{json,md,css,yml,yaml}": [
       "prettier --write"
-    ]
-  },
-  "pnpm": {
-    "overrides": {
-      "postcss": "^8.5.24",
-      "sharp": "^0.35.3"
-    },
-    "onlyBuiltDependencies": [
-      "@tailwindcss/oxide",
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
     ]
   }
 }

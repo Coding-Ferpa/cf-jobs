@@ -109,7 +109,8 @@ Verificado no lote de manutenção de 2026-07-29 (M4.1) e revisto no M4.2. Cada 
 | --- | --- | --- |
 | ESLint 9 | 10 | `eslint-plugin-react` (peer `^9.7`) e `eslint-plugin-jsx-a11y` (peer `^9`) não declaram suporte ao 10 nas versões estáveis |
 | TypeScript 5.9 | 7 | `typescript-eslint` aborta com "does not support TS 7.0" — o lint inteiro para |
-| pnpm 10 | 11 | **Adoção agendada para o M8**, não bloqueio técnico: a política `minimumReleaseAge` do 11 (rejeita pacotes publicados nas últimas 24 h) está **aprovada pelo mantenedor** como postura de supply chain, alinhada ao [doc 07](07-seguranca.md) (A08). Fica para o M8 porque hoje ela recusa 13 pacotes recém-publicados do lockfile; até lá eles terão envelhecido. Na virada, os overrides do [ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md) migram para `pnpm-workspace.yaml` — o 11 deixa de ler o campo `pnpm` do package.json |
+
+**pnpm 11 adotado no M8.** A política `minimumReleaseAge` (recusa pacote publicado nas últimas 24 h) está ligada em `pnpm-workspace.yaml`, para onde migraram os overrides do [ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md) — o 11 não lê mais o campo `pnpm` do package.json. Na virada ela recusou o `@sentry/nextjs` e o `jsdom`, publicados horas antes; a resposta foi fixar a versão anterior de cada um, não afrouxar a política. Consequência a esperar: **PR do Dependabot com pacote recém-lançado falha o CI até ele envelhecer** — é o comportamento contratado (doc 07, A08). O `onlyBuiltDependencies` virou `allowBuilds`, que exige decisão explícita por pacote.
 
 `@types/node` fica fora da tabela porque não é bloqueio nenhum: os tipos **acompanham a série do runtime** (24), não a maior publicada (26). Tipar API que o runtime não tem troca erro de compilação por erro de produção.
 

@@ -1,0 +1,44 @@
+# Configuração do pnpm 11. Do 11 em diante ele **não lê mais o campo `pnpm` do
+# package.json** — overrides e afins moram aqui (doc 01, virada agendada para o
+# M8).
+#
+# Não há `packages:` porque o projeto não é monorepo: este arquivo existe pela
+# configuração, não pelo workspace.
+
+# Supply chain (doc 07, A08): recusa pacote publicado nas últimas 24 horas.
+# Vale para toda instalação, inclusive a do CI e a da Vercel. O ataque que isso
+# cobre é o do pacote comprometido publicado há minutos — o intervalo é o que a
+# comunidade leva para perceber e despublicar. Em minutos, como o pnpm espera.
+#
+# Consequência real, já sentida na virada: dependência lançada hoje não entra.
+# Ou se espera, ou se fixa a versão anterior — foi o que aconteceu com
+# `@sentry/nextjs` e `jsdom`, ambos publicados horas antes. É o comportamento
+# desejado, não um obstáculo a contornar.
+minimumReleaseAge: 1440
+
+# Vulnerabilidades transitivas de produção, zeradas por override (ADR-0011).
+# São dependências do `next`; sair delas por conta própria é o preço de não
+# esperar o upstream.
+overrides:
+  postcss: ^8.5.24
+  sharp: ^0.35.3
+
+# Script de instalação só roda com autorização explícita — é a defesa contra o
+# pacote que executa código na máquina de quem instala. O pnpm 11 pede decisão
+# de cada um: `true` libera, `false` recusa e para de perguntar.
+allowBuilds:
+  # Binário nativo do Tailwind v4; sem ele o CSS não compila.
+  '@tailwindcss/oxide': true
+  # Compilador do vite/tsx — todo o tooling de teste depende dele.
+  esbuild: true
+  # Processamento de imagem do `next/image`.
+  sharp: true
+  # Resolvedor nativo usado pelo ESLint.
+  unrs-resolver: true
+  # Baixa o binário que o `withSentryConfig` usa para subir source map no build
+  # de produção (doc 09). Sem `SENTRY_AUTH_TOKEN` ninguém o chama, mas quando o
+  # token existe o binário precisa estar lá.
+  '@sentry/cli': true
+  # Chega via recharts e serve para alternar entre Vue 2 e 3. Não há Vue aqui:
+  # rodar o script seria dar execução a um pacote que o projeto não usa.
+  vue-demi: false

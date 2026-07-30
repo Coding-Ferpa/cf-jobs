@@ -14,7 +14,7 @@ Manter o gate como está significaria CI vermelho desde o primeiro commit por um
 
 O gate bloqueante roda sobre as dependências de produção (`pnpm audit --prod --audit-level high`); a auditoria completa roda no mesmo job como passo informativo (`continue-on-error`).
 
-Vulnerabilidades em dependências de produção foram zeradas com `pnpm.overrides` (`postcss` e `sharp`, ambas transitivas do `next`).
+Vulnerabilidades em dependências de produção foram zeradas com `pnpm.overrides` (`postcss` e `sharp`, ambas transitivas do `next`). *No M8 esses overrides passaram para `pnpm-workspace.yaml`: o pnpm 11 deixou de ler o campo `pnpm` do package.json. O escopo do gate não mudou.*
 
 ## Consequências
 
