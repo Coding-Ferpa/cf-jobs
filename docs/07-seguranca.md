@@ -88,7 +88,7 @@ Anti-scraping da **nossa** listagem: API pública é aberta por decisão (dados 
 | A05 Security Misconfiguration | headers via `next.config`: CSP estrita (nonce p/ scripts, `frame-ancestors 'none'`), HSTS, X-Content-Type-Options, Referrer-Policy `strict-origin-when-cross-origin`, Permissions-Policy mínima |
 | A06 Vulnerable Components | Dependabot + `pnpm audit` no CI (falha em high/critical) |
 | A07 Auth Failures | Supabase Auth gerenciado; cookies httpOnly/secure/sameSite=lax; sem tokens em localStorage |
-| A08 Software/Data Integrity | lockfile commitado; CI a partir de fontes fixadas; Server Actions com origin check nativo |
+| A08 Software/Data Integrity | lockfile commitado; `pnpm audit --prod` bloqueante no CI ([ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md)); CI a partir de fontes fixadas; Server Actions com origin check nativo. **Sem espera mínima de publicação** — a política `minimumReleaseAge` foi desligada ([ADR-0019](adr/0019-minimumreleaseage-desligado.md)) |
 | A09 Logging Failures | audit_logs para toda mutation; logs estruturados sem PII; import trail completo |
 | A10 SSRF | ver acima — `safe-fetch` centralizado |
 
