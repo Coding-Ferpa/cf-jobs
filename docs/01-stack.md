@@ -108,7 +108,7 @@ Verificado no lote de manutenção de 2026-07-29 (M4.1) e revisto no M4.2. Cada 
 | Segurado em | Major disponível | O que trava |
 | --- | --- | --- |
 | ESLint 9 | 10 | `eslint-plugin-react` (peer `^9.7`) e `eslint-plugin-jsx-a11y` (peer `^9`) não declaram suporte ao 10 nas versões estáveis |
-| TypeScript 5.9 | 7 | `typescript-eslint` aborta com "does not support TS 7.0" — o lint inteiro para |
+| TypeScript 6.0 | 7 | O `typescript-eslint` declara `typescript >=4.8.4 <6.1.0`: a **6.0 entrou** (o projeto saiu da 5.9), e a 7 continua fora — nela o lint inteiro para. Revisitar quando o `typescript-eslint` publicar suporte |
 
 **pnpm 11 adotado no M8.** A política `minimumReleaseAge` (recusa pacote publicado nas últimas 24 h) está ligada em `pnpm-workspace.yaml`, para onde migraram os overrides do [ADR-0011](adr/0011-escopo-do-gate-de-pnpm-audit.md) — o 11 não lê mais o campo `pnpm` do package.json. Na virada ela recusou o `@sentry/nextjs` e o `jsdom`, publicados horas antes; a resposta foi fixar a versão anterior de cada um, não afrouxar a política. Consequência a esperar: **PR do Dependabot com pacote recém-lançado falha o CI até ele envelhecer** — é o comportamento contratado (doc 07, A08). O `onlyBuiltDependencies` virou `allowBuilds`, que exige decisão explícita por pacote.
 
