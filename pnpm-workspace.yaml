@@ -16,12 +16,26 @@
 # desejado, não um obstáculo a contornar.
 minimumReleaseAge: 1440
 
-# Vulnerabilidades transitivas de produção, zeradas por override (ADR-0011).
-# São dependências do `next`; sair delas por conta própria é o preço de não
-# esperar o upstream.
 overrides:
+  # Vulnerabilidades transitivas de produção, zeradas por override (ADR-0011).
+  # São dependências do `next`; sair delas por conta própria é o preço de não
+  # esperar o upstream.
   postcss: ^8.5.24
   sharp: ^0.35.3
+
+  # Avisos do `pnpm audit` corrigidos por versão, não por exceção. Os três são
+  # patch dentro da mesma major: o menor risco de quebra possível.
+  #
+  # `fast-uri` é a única que importa para o gate bloqueante — ela chega por
+  # `@hookform/resolvers > ajv`, que é dependência de produção
+  # (GHSA-7p8r-x3mc-p8w7, confusão de host por barra invertida).
+  fast-uri: ^3.1.5
+  # GHSA-ph9p-34f9-6g65 e GHSA-52f5-9888-hmc6, as duas por `@lhci/cli`.
+  tmp: ^0.2.6
+  # GHSA-w5hq-g745-h8pq. Escopada ao `@lhci/cli` porque o `uuid` já vai na 14 e
+  # forçar a major nova no resto da árvore trocaria um aviso por um erro de
+  # execução.
+  '@lhci/cli>uuid': ^11.1.1
 
 # Script de instalação só roda com autorização explícita — é a defesa contra o
 # pacote que executa código na máquina de quem instala. O pnpm 11 pede decisão
