@@ -8,62 +8,145 @@ import { z } from '@/lib/zod'
  * bundle do navegador e nunca deve conter valor sensível.
  */
 
-export const clientEnvSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+/**
+ * Endereço local: o que existe na máquina de quem desenvolve e **não existe
+ * dentro de um contêiner da Vercel**.
+ */
+const HOSTS_LOCAIS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0'])
 
-  // Sentry (doc 09). Opcional: sem ela o SDK não é nem carregado, e um deploy
-  // da comunidade sobe sem conta em serviço nenhum. O DSN é público por
-  // construção — serve para enviar evento, não para ler nada.
-  NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
-})
+function hostDe(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  try {
+    return new URL(url).hostname
+  } catch {
+    return undefined
+  }
+}
 
-export const serverEnvSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  DATABASE_URL: z.string().min(1),
-  DIRECT_URL: z.string().min(1),
-  // Opcionais no boot (doc 01): quem contribui com UI ou banco não precisa de
-  // chave da NVIDIA para rodar o projeto. Quem valida é `requireAiEnv()`, no
-  // ponto de uso.
-  //
-  // São duas chaves porque elas se revezam a cada chamada (doc 05): cada conta
-  // gratuita tem 40 req/min, e alternar dobra a folga sem custo. A segunda é
-  // opcional — com uma só, a rotação simplesmente não acontece.
-  NVIDIA_API_KEY: z.string().min(1).optional(),
-  NVIDIA_API_KEY_FALLBACK: z.string().min(1).optional(),
+/**
+ * `VERCEL` é definida pela plataforma no build e no runtime, e por mais ninguém
+ * — nem local, nem no CI, que constroem contra o Supabase local de propósito.
+ */
+function naVercel(): boolean {
+  return Boolean(process.env.VERCEL)
+}
 
-  // Endpoint compatível com a API OpenAI. O padrão é o NIM da NVIDIA (doc 05);
-  // existe como variável porque um deploy da comunidade pode apontar para
-  // outro provedor compatível — e porque é assim que o E2E fala com um dublê
-  // local em vez de gastar chamada de verdade.
-  AI_BASE_URL: z.url().optional(),
+/**
+ * Recusa endereço local quando o código roda na Vercel.
+ *
+ * Existe por um episódio concreto: as variáveis do `.env` de desenvolvimento
+ * foram coladas no painel, e o build morreu em `prerendering /sitemap.xml` com
+ * `ECONNREFUSED 127.0.0.1:54322` — um erro que não diz qual variável está
+ * errada nem por quê, seis passos depois da causa. Aqui ele vira uma frase.
+ */
+function recusarEnderecoLocal(
+  chave: string,
+  valor: string | undefined,
+  ctx: z.RefinementCtx,
+  comoCorrigir: string,
+): void {
+  if (!naVercel()) return
 
-  // Cascata de modelos, tentados nesta ordem (doc 05). Os três foram sondados
-  // com chave real antes de virarem padrão (`scripts/sondar-modelos.ts`): todos
-  // existem para a conta e aceitam `response_format: json_schema` (ADR-0017).
-  // O anterior segundo degrau, `moonshotai/kimi-k2.6`, respondia 404 — padrão
-  // que não existe é degrau a menos na cascata, e ninguém percebe.
-  AI_MODEL_PRIMARY: z.string().min(1).default('z-ai/glm-5.2'),
-  AI_MODEL_SECONDARY: z.string().min(1).default('minimaxai/minimax-m3'),
-  AI_MODEL_FALLBACK: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
+  const host = hostDe(valor)
+  if (!host || !HOSTS_LOCAIS.has(host)) return
 
-  // Sem esta variável o painel de tokens continua existindo, só não há
-  // bloqueio suave (doc 05): o tier gratuito confirmado já dá folga.
-  AI_MONTHLY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),
-  CRON_SECRET: z.string().min(16),
+  ctx.addIssue({
+    code: 'custom',
+    path: [chave],
+    message:
+      `aponta para ${host}, que não existe dentro da Vercel — ` +
+      `é o valor do ambiente de desenvolvimento. ${comoCorrigir}`,
+  })
+}
 
-  // Sal do visitor_hash (doc 07). Opcional no boot pelo mesmo motivo da chave
-  // da NVIDIA: quem contribui com UI não precisa dele para o app subir. Quem
-  // exige é o endpoint de eventos, no ponto de uso.
-  ANALYTICS_SALT: z.string().min(16).optional(),
+export const clientEnvSchema = z
+  .object({
+    NEXT_PUBLIC_SITE_URL: z.url(),
+    NEXT_PUBLIC_SUPABASE_URL: z.url(),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
 
-  // Opcionais: sem elas o login com GitHub simplesmente não é oferecido. Os
-  // nomes são os que a CLI do Supabase lê em config.toml, então o mesmo par de
-  // variáveis configura o provider local e a detecção do recurso no app.
-  SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: z.string().min(1).optional(),
-  SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET: z.string().min(1).optional(),
-})
+    // Sentry (doc 09). Opcional: sem ela o SDK não é nem carregado, e um deploy
+    // da comunidade sobe sem conta em serviço nenhum. O DSN é público por
+    // construção — serve para enviar evento, não para ler nada.
+    NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
+  })
+  .superRefine((env, ctx) => {
+    recusarEnderecoLocal(
+      'NEXT_PUBLIC_SITE_URL',
+      env.NEXT_PUBLIC_SITE_URL,
+      ctx,
+      'Use a URL pública do deploy — o domínio final, ou o *.vercel.app do ' +
+        'projeto enquanto ele não existe. É o que vai no sitemap, no canonical ' +
+        'e no Open Graph.',
+    )
+    recusarEnderecoLocal(
+      'NEXT_PUBLIC_SUPABASE_URL',
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      ctx,
+      'Use a Project URL do painel do Supabase.',
+    )
+  })
+
+export const serverEnvSchema = z
+  .object({
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    DATABASE_URL: z.string().min(1),
+    DIRECT_URL: z.string().min(1),
+    // Opcionais no boot (doc 01): quem contribui com UI ou banco não precisa de
+    // chave da NVIDIA para rodar o projeto. Quem valida é `requireAiEnv()`, no
+    // ponto de uso.
+    //
+    // São duas chaves porque elas se revezam a cada chamada (doc 05): cada conta
+    // gratuita tem 40 req/min, e alternar dobra a folga sem custo. A segunda é
+    // opcional — com uma só, a rotação simplesmente não acontece.
+    NVIDIA_API_KEY: z.string().min(1).optional(),
+    NVIDIA_API_KEY_FALLBACK: z.string().min(1).optional(),
+
+    // Endpoint compatível com a API OpenAI. O padrão é o NIM da NVIDIA (doc 05);
+    // existe como variável porque um deploy da comunidade pode apontar para
+    // outro provedor compatível — e porque é assim que o E2E fala com um dublê
+    // local em vez de gastar chamada de verdade.
+    AI_BASE_URL: z.url().optional(),
+
+    // Cascata de modelos, tentados nesta ordem (doc 05). Os três foram sondados
+    // com chave real antes de virarem padrão (`scripts/sondar-modelos.ts`): todos
+    // existem para a conta e aceitam `response_format: json_schema` (ADR-0017).
+    // O anterior segundo degrau, `moonshotai/kimi-k2.6`, respondia 404 — padrão
+    // que não existe é degrau a menos na cascata, e ninguém percebe.
+    AI_MODEL_PRIMARY: z.string().min(1).default('z-ai/glm-5.2'),
+    AI_MODEL_SECONDARY: z.string().min(1).default('minimaxai/minimax-m3'),
+    AI_MODEL_FALLBACK: z.string().min(1).default('meta/llama-3.3-70b-instruct'),
+
+    // Sem esta variável o painel de tokens continua existindo, só não há
+    // bloqueio suave (doc 05): o tier gratuito confirmado já dá folga.
+    AI_MONTHLY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),
+    CRON_SECRET: z.string().min(16),
+
+    // Sal do visitor_hash (doc 07). Opcional no boot pelo mesmo motivo da chave
+    // da NVIDIA: quem contribui com UI não precisa dele para o app subir. Quem
+    // exige é o endpoint de eventos, no ponto de uso.
+    ANALYTICS_SALT: z.string().min(16).optional(),
+
+    // Opcionais: sem elas o login com GitHub simplesmente não é oferecido. Os
+    // nomes são os que a CLI do Supabase lê em config.toml, então o mesmo par de
+    // variáveis configura o provider local e a detecção do recurso no app.
+    SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: z.string().min(1).optional(),
+    SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET: z.string().min(1).optional(),
+  })
+  .superRefine((env, ctx) => {
+    recusarEnderecoLocal(
+      'DATABASE_URL',
+      env.DATABASE_URL,
+      ctx,
+      'Copie de Supabase → Connect → Transaction pooler (porta 6543).',
+    )
+    recusarEnderecoLocal(
+      'DIRECT_URL',
+      env.DIRECT_URL,
+      ctx,
+      'Copie de Supabase → Connect → Direct connection (porta 5432).',
+    )
+  })
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>
 export type ServerEnv = z.infer<typeof serverEnvSchema>

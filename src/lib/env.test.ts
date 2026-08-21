@@ -185,3 +185,81 @@ describe('acessores de ambiente', () => {
     expect(() => serverEnv()).toThrow(/só pode ser lido no servidor/)
   })
 })
+
+describe('endereço local na Vercel', () => {
+  /**
+   * A trava existe por um episódio concreto: as variáveis do `.env` de
+   * desenvolvimento foram coladas no painel, e o build morreu em
+   * `prerendering /sitemap.xml` com `ECONNREFUSED 127.0.0.1:54322` — seis
+   * passos depois da causa, sem dizer qual variável estava errada.
+   */
+  const LOCAL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('recusa DATABASE_URL local quando roda na Vercel', () => {
+    vi.stubEnv('VERCEL', '1')
+
+    expect(() => parseServerEnv({ ...validServerEnv, DATABASE_URL: LOCAL })).toThrow(
+      /DATABASE_URL.*127\.0\.0\.1.*Transaction pooler/s,
+    )
+  })
+
+  it('recusa DIRECT_URL local do mesmo jeito', () => {
+    vi.stubEnv('VERCEL', '1')
+
+    expect(() => parseServerEnv({ ...validServerEnv, DIRECT_URL: LOCAL })).toThrow(
+      /DIRECT_URL.*Direct connection/s,
+    )
+  })
+
+  it('recusa a URL local do Supabase no schema de cliente', () => {
+    vi.stubEnv('VERCEL', '1')
+
+    expect(() =>
+      parseClientEnv({
+        NEXT_PUBLIC_SITE_URL: 'https://cfjobs.vercel.app',
+        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon',
+      }),
+    ).toThrow(/NEXT_PUBLIC_SUPABASE_URL.*Project URL/s)
+  })
+
+  it('recusa NEXT_PUBLIC_SITE_URL local — é o que envenena o SEO em silêncio', () => {
+    vi.stubEnv('VERCEL', '1')
+
+    // Sitemap, canonical e Open Graph saem daqui. Apontando para localhost, o
+    // site sobe funcionando e o Google indexa endereços que não existem.
+    expect(() =>
+      parseClientEnv({
+        NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://projeto.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon',
+      }),
+    ).toThrow(/NEXT_PUBLIC_SITE_URL.*vercel\.app/s)
+  })
+
+  it('aceita endereço remoto na Vercel', () => {
+    vi.stubEnv('VERCEL', '1')
+
+    const env = parseServerEnv({
+      ...validServerEnv,
+      DATABASE_URL:
+        'postgresql://postgres.abc:senha@aws-1-sa-east-1.pooler.supabase.com:6543/postgres',
+      DIRECT_URL: 'postgresql://postgres:senha@db.abc.supabase.co:5432/postgres',
+    })
+
+    expect(env.DATABASE_URL).toContain('pooler.supabase.com')
+  })
+
+  it('não atrapalha fora da Vercel — local e CI constroem contra o banco local', () => {
+    // Sem `VERCEL` no ambiente, `127.0.0.1` é exatamente o esperado: é assim
+    // que o `pnpm build` roda na máquina de quem desenvolve e no job do
+    // Lighthouse, que sobe o Supabase local antes.
+    expect(() =>
+      parseServerEnv({ ...validServerEnv, DATABASE_URL: LOCAL, DIRECT_URL: LOCAL }),
+    ).not.toThrow()
+  })
+})
