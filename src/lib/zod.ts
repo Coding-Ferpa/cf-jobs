@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import pt from 'zod/v4/locales/pt.js'
 
 /**
  * O Zod do projeto, com o locale pt-BR já aplicado (doc 02).
@@ -15,13 +16,19 @@ import { z } from 'zod'
  * continua respondendo em inglês. Configurar no módulo que os schemas
  * importam é o que garante ser a mesma instância. Ver ADR-0016.
  *
- * Uma regra do ESLint recusa `import { z } from 'zod'` fora deste arquivo —
+ * Uma regra do ESLint recusa `import { z } from 'zod'
+import pt from 'zod/v4/locales/pt.js'` fora deste arquivo —
  * sem ela, um schema novo voltaria a falar inglês sem ninguém perceber.
  *
  * Mensagem manual continua valendo onde ela diz mais que o locale: "Escolha a
  * empresa." orienta, "Muito pequeno: esperado que string tivesse >=1
  * caracteres" apenas descreve.
+ *
+ * **O locale vem do arquivo dele, não de `z.locales.pt()`.** `z.locales` é um
+ * barril com todos os idiomas do Zod, e nenhum empacotador consegue podá-lo:
+ * medido no bundle da home, iam junto russo, japonês, chinês, hebraico,
+ * coreano e polonês — em um site que só fala português.
  */
-z.config(z.locales.pt())
+z.config(pt())
 
 export { z }

@@ -1,5 +1,3 @@
-import { clientEnv } from '@/lib/env'
-
 /**
  * Configuração comum do Sentry (doc 09).
  *
@@ -13,8 +11,24 @@ import { clientEnv } from '@/lib/env'
  * source map é outra, e essa sim é segredo.
  */
 
+/**
+ * Lido direto do `process.env`, e **não** por `clientEnv()`. O Next embute
+ * `NEXT_PUBLIC_*` no bundle em tempo de build, então o valor é o mesmo — o que
+ * muda é o que vem junto.
+ *
+ * `clientEnv()` mora em `lib/env`, que importa `lib/zod`, que importa o `z`. E
+ * `z` é um namespace com **todos os locales do Zod** dentro: importá-lo de um
+ * componente de cliente arrasta russo, japonês, chinês, hebraico, coreano e
+ * polonês para o navegador de quem só quer ver vagas. Medido: o
+ * `global-error.tsx` e este arquivo, que rodam em toda página, sozinhos
+ * respondiam por **279 kB** do bundle público (874 → 595 kB).
+ *
+ * A validação não se perde: o schema segue exigindo `z.url()` desta variável, e
+ * `clientEnv()` é chamado no layout raiz, no servidor. DSN inválido continua
+ * derrubando o build — só não custa 279 kB a cada visita.
+ */
 export function dsnDoSentry(): string | undefined {
-  return clientEnv().NEXT_PUBLIC_SENTRY_DSN
+  return process.env.NEXT_PUBLIC_SENTRY_DSN
 }
 
 /**
