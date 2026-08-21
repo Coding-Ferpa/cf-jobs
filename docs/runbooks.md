@@ -74,7 +74,7 @@ runtime, e `check:env` compara o exemplo com o schema do app.
 | `SUPABASE_ACCESS_TOKEN` | supabase.com/dashboard/account/tokens |
 | `SUPABASE_PROJECT_REF` | O `ref` do projeto (aparece na URL do dashboard) |
 | `SUPABASE_DB_PASSWORD` | Senha do banco, definida na criação do projeto |
-| `VERCEL_DEPLOY_HOOK_URL` | Vercel → Settings → Git → Deploy Hooks, apontando para `main` |
+| `VERCEL_DEPLOY_HOOK_URL` | **Você cria**: Vercel → projeto → Settings → Git → seção *Deploy Hooks* → nome (ex.: `deploy-db`) + branch `main` → **Create Hook**. A URL aparece depois de salvar e é `https://api.vercel.com/v1/integrations/deploy/prj_.../...`. **Trate como senha**: quem tem a URL dispara deploy do projeto, sem autenticação nenhuma |
 
 Environment e não repository secret: assim dá para exigir aprovação manual antes
 de qualquer migration tocar produção (Environments → Required reviewers).
