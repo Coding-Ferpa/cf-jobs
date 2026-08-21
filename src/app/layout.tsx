@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { JetBrains_Mono, Poppins } from 'next/font/google'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -55,6 +56,28 @@ export default function RootLayout({
       <body>
         {/* O nuqs precisa do adapter do App Router para escrever na URL. */}
         <NuqsAdapter>{children}</NuqsAdapter>
+
+        {/*
+          Camada de métricas de site do doc 09 — pageview agregado, país,
+          dispositivo — ao lado do analytics first-party, que responde outra
+          pergunta: qual vaga foi vista e clicada.
+
+          Sem cookie e sem identificador persistente, como o resto do projeto
+          (doc 07). O script é servido pela própria origem (`/_vercel/insights`),
+          então a CSP estrita não precisa liberar terceiro nenhum — conferido
+          nas duas metades do site, inclusive na rota com nonce e
+          `strict-dynamic`, onde o script injetado herda a confiança.
+
+          **Sem condicional de ambiente, de propósito.** Fora da Vercel o
+          `/_vercel/insights/script.js` responde 404 e o pacote loga o motivo
+          ("enable Web Analytics for your project"), o que é barulho em
+          desenvolvimento. Tentou-se envolver em `process.env.VERCEL`, e a
+          tentativa foi descartada: definir `VERCEL=1` localmente quebra o
+          próprio `next build`, então não há como verificar aqui que a condição
+          seria verdadeira lá. Trocar um 404 explicado por uma trava que pode
+          desligar a medição em silêncio é péssimo negócio.
+        */}
+        <Analytics />
       </body>
     </html>
   )
