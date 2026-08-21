@@ -15,3 +15,8 @@ public/scalar/
 # Fixtures reproduzem respostas reais, inclusive as malformadas: formatá-las
 # conserta justamente o defeito que o teste precisa reproduzir.
 src/features/import/__fixtures__/
+
+# Gerado pelo Release Please a cada release, a partir dos Conventional Commits.
+# Formatá-lo à mão dura até o próximo release e ainda faz o CI reprovar um
+# arquivo que ninguém escreveu.
+CHANGELOG.md
