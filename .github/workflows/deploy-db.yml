@@ -39,18 +39,18 @@ jobs:
     environment: producao
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
       # Compatibilidade com o deploy anterior (doc 11). Roda aqui e não só no
       # CI porque é aqui que o comando destrutivo alcançaria produção.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - run: pnpm install --frozen-lockfile
       - name: Expand/contract nas migrations
         run: pnpm check:migrations

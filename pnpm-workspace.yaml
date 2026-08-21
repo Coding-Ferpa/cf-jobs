@@ -37,6 +37,16 @@ overrides:
   # forçar a major nova no resto da árvore trocaria um aviso por um erro de
   # execução.
   '@lhci/cli>uuid': ^11.1.1
+  # GHSA-jmr9-qjv8-65gv no `extract-zip`, que **não tem versão corrigida** — o
+  # aviso pede >=2.0.2 e a última publicada é a 2.0.1. A saída é subir quem o
+  # puxa: o `@puppeteer/browsers` deixou de depender dele na 3.0.0. Chega por
+  # `@lhci/cli > lighthouse > puppeteer-core`, então só o Lighthouse é afetado —
+  # e se a troca quebrar o launcher do Chrome, o job do Lighthouse falha alto.
+  '@puppeteer/browsers': ^3.2.1
+  # Peer que a 3.x do `@puppeteer/browsers` passou a exigir (>=8.0.1). Só o
+  # `@lhci/cli` e o próprio puppeteer o usam, e apenas para baixar navegador
+  # através de proxy — coisa que nem o CI nem a máquina de ninguém faz aqui.
+  proxy-agent: ^8.0.2
 
 # Script de instalação só roda com autorização explícita — é a defesa contra o
 # pacote que executa código na máquina de quem instala. O pnpm 11 pede decisão
