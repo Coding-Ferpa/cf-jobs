@@ -236,6 +236,27 @@ build. Cuidado: se o deploy ruim veio junto com migration, o rollback do código
 sozinho pode deixar código velho com banco novo — é exatamente a janela que a
 regra de expand/contract protege, e por isso `pnpm check:migrations` existe.
 
+### Build da Vercel falha com `ECONNREFUSED` ou timeout de banco
+
+```
+Error occurred prerendering page "/sitemap.xml"
+Error: connect ECONNREFUSED 127.0.0.1:54322
+```
+
+O `/sitemap.xml` tem `revalidate = 3600`: ele é **gerado no build** e consulta as
+vagas publicadas. Ou seja, **o build depende do banco estar acessível** — e o
+endereço no erro diz qual banco ele tentou.
+
+- `127.0.0.1:54322` é o Supabase **local**. A variável na Vercel foi preenchida
+  com o valor do `.env` de desenvolvimento; troque por `DATABASE_URL` = Connect →
+  Transaction pooler (6543) e `DIRECT_URL` = Connect → Direct connection (5432).
+- Endereço `*.supabase.co` com timeout: o projeto do Supabase está **pausado**.
+  O plano gratuito pausa depois de uma semana sem uso, e um projeto pausado
+  derruba o deploy — não só o site. Despause pelo dashboard e refaça o deploy.
+
+Falhar o build é o comportamento desejado: a alternativa seria publicar um
+sitemap vazio, que o Google leria como "este site não tem páginas".
+
 ### Migration ruim
 
 Não há `down`. A correção é uma migration nova que desfaz (e ela também passa
