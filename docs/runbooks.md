@@ -20,15 +20,26 @@ A ordem importa: cada passo depende do anterior existir.
 | 2 | Supabase | Extensões, migrations e o seed de taxonomias |
 | 3 | Supabase | Custom Access Token Hook, os dois segredos do Vault, pg_cron |
 | 4 | GitHub | Environment `producao` com os segredos do `deploy-db.yml` |
-| 5 | Vercel | Importar o repositório, Node 24.x, variáveis, **desligar deploy automático de produção** |
+| 5 | Vercel | Importar o repositório, Node 24.x, variáveis e o deploy hook (o auto-deploy de `main` já vem travado pelo `vercel.json`) |
 | 6 | Sentry | Projeto, DSN e token de upload de source map |
 | 7 | DNS | Domínio apontado para a Vercel |
 | 8 | — | Primeiro deploy pelo `deploy-db.yml` e a bateria de verificação da seção 6 |
 
-O passo 5 tem uma armadilha: se a Vercel continuar publicando produção sozinha
-no push para `main`, o deploy corre junto com as migrations e a ordem que o
-[doc 11](11-open-source.md) exige deixa de existir. **Git → Production Branch →
-desativar o deploy automático**; quem promove é o hook no fim do `deploy-db.yml`.
+O passo 5 tinha uma armadilha: se a Vercel publicasse produção sozinha no push
+para `main`, o deploy correria junto com as migrations e a ordem que o
+[doc 11](11-open-source.md) exige deixaria de existir. Isso agora está resolvido
+**no repositório**, não no painel — `vercel.json` traz
+`git.deploymentEnabled: { main: false }`, e quem promove produção é o deploy
+hook no fim do `deploy-db.yml`.
+
+Duas coisas a saber sobre esse arquivo:
+
+- **Preview de PR continua funcionando.** A trava vale só para `main`; qualquer
+  outra branch segue publicando preview, como o doc 11 pede.
+- **Não troque por `github.enabled: false`.** Ele parece equivalente, está
+  deprecado, e a documentação do deploy hook diz explicitamente que **hooks não
+  disparam** quando ele existe — trocaria a trava certa pela que desliga a
+  promoção inteira.
 
 ---
 
