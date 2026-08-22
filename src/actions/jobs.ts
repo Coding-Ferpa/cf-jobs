@@ -2,10 +2,24 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { eq } from 'drizzle-orm'
+import { inArray, eq } from 'drizzle-orm'
 
 import { defineAction, FalhaDaAction } from '@/actions/define-action'
-import { companies, jobs, jobTags, jobTechnologies } from '@/db/schema'
+import {
+  companies,
+  contractTypes,
+  jobs,
+  jobTags,
+  jobTechnologies,
+  seniorityLevels,
+  technologies,
+  workModes,
+} from '@/db/schema'
+import {
+  dispatchJobBroadcast,
+  type BroadcastChannel,
+  type BroadcastResult,
+} from '@/lib/broadcast'
 import {
   atualizarVagaSchema,
   criarVagaSchema,
@@ -105,6 +119,55 @@ async function vagaExistente(tx: Transaction, id: string) {
   return vaga
 }
 
+async function obterDetalhesParaBroadcast(tx: Transaction, entrada: VagaValidada) {
+  let workModeLabel: string | null = null
+  let seniorityLabel: string | null = null
+  let contractTypeLabel: string | null = null
+  const techs: string[] = []
+
+  if (entrada.workModeId) {
+    const [row] = await tx
+      .select({ label: workModes.label })
+      .from(workModes)
+      .where(eq(workModes.id, entrada.workModeId))
+      .limit(1)
+    if (row) workModeLabel = row.label
+  }
+
+  if (entrada.seniorityId) {
+    const [row] = await tx
+      .select({ label: seniorityLevels.label })
+      .from(seniorityLevels)
+      .where(eq(seniorityLevels.id, entrada.seniorityId))
+      .limit(1)
+    if (row) seniorityLabel = row.label
+  }
+
+  if (entrada.contractTypeId) {
+    const [row] = await tx
+      .select({ label: contractTypes.label })
+      .from(contractTypes)
+      .where(eq(contractTypes.id, entrada.contractTypeId))
+      .limit(1)
+    if (row) contractTypeLabel = row.label
+  }
+
+  if (entrada.technologyIds.length > 0) {
+    const rows = await tx
+      .select({ label: technologies.label })
+      .from(technologies)
+      .where(inArray(technologies.id, entrada.technologyIds))
+    for (const r of rows) techs.push(r.label)
+  }
+
+  return {
+    workModeLabel,
+    seniorityLabel,
+    contractTypeLabel,
+    technologies: techs,
+  }
+}
+
 export const criarVaga = defineAction({
   nome: 'job.create',
   entidade: 'job',
@@ -148,10 +211,44 @@ export const criarVaga = defineAction({
 
     await gravarVinculos(tx, id, entrada.technologyIds, entrada.tagIds)
 
+    let broadcastResults: BroadcastResult[] = []
+    if (entrada.broadcastChannels && entrada.broadcastChannels.length > 0) {
+      const detalhes = await obterDetalhesParaBroadcast(tx, entrada)
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+      broadcastResults = await dispatchJobBroadcast(
+        {
+          id,
+          slug: criada.slug,
+          title: entrada.title,
+          companyName: empresa,
+          locationCity: entrada.locationCity,
+          locationState: entrada.locationState,
+          locationCountry: entrada.locationCountry,
+          workModeLabel: detalhes.workModeLabel,
+          seniorityLabel: detalhes.seniorityLabel,
+          contractTypeLabel: detalhes.contractTypeLabel,
+          salaryMin: entrada.salaryMin,
+          salaryMax: entrada.salaryMax,
+          salaryCurrency: entrada.salaryCurrency,
+          salaryPeriod: entrada.salaryPeriod,
+          technologies: detalhes.technologies,
+          summary: entrada.summary,
+          applyUrl: entrada.applyUrl,
+          siteUrl,
+        },
+        entrada.broadcastChannels as BroadcastChannel[],
+        { targetEnvironment: entrada.broadcastEnvironment },
+      )
+    }
+
     return {
-      data: criada,
+      data: { ...criada, broadcast: broadcastResults },
       entityId: id,
-      diff: { criada: { title: entrada.title, empresa, slug: criada.slug } },
+      diff: {
+        criada: { title: entrada.title, empresa, slug: criada.slug },
+        broadcast: broadcastResults,
+      },
     }
   },
 })
