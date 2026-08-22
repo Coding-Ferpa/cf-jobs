@@ -68,6 +68,12 @@ Spec **OpenAPI 3.1** gerada a partir dos schemas Zod dos handlers (`zod-openapi`
 ### `POST /api/internal/revalidate`
 Não versionada, não documentada publicamente. Chamada pelo `pg_cron` (via `pg_net`) após arquivamentos: header `Authorization: Bearer {CRON_SECRET}` → executa `revalidateTag('jobs')`. `401` sem o secret.
 
+### `GET` e `POST /api/webhooks/whatsapp`
+Webhook para integração com Meta WhatsApp Cloud API (ADR-0020).
+- `GET`: Validação do handshake de subscrição (`hub.mode === 'subscribe'`, `hub.verify_token`). Retorna `hub.challenge`.
+- `POST`: Recepção de eventos assíncronos de confirmação de status das mensagens enviadas em grupos (`sent`, `delivered`, `read`, `failed`) e mensagens recebidas. Resposta rápida `200 OK`.
+
+
 ## Server Actions (contratos)
 
 Todas em `src/actions/`, todas com o mesmo esqueleto: sessão → Zod input → autorização por papel → operação → `audit_logs` → `revalidateTag`. Retorno padronizado `{ ok: true, data } | { ok: false, error: { code, message, fieldErrors? } }` — nunca lançam exceção para o client.

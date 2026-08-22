@@ -29,6 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { AVAILABLE_CHANNELS } from '@/lib/broadcast'
+import { cn } from '@/lib/cn'
 import {
   MOEDAS,
   PERIODOS_DE_SALARIO,
@@ -176,6 +178,8 @@ export function JobForm({
       applyUrl: '',
       technologyIds: [],
       tagIds: [],
+      broadcastChannels: ['whatsapp'],
+      broadcastEnvironment: 'test',
     },
   })
 
@@ -205,6 +209,8 @@ export function JobForm({
   // e o React Compiler não consegue memoizar o componente em volta.
   const tecnologias = useWatch({ control: form.control, name: 'technologyIds' }) ?? []
   const etiquetas = useWatch({ control: form.control, name: 'tagIds' }) ?? []
+  const canaisSelecionados =
+    useWatch({ control: form.control, name: 'broadcastChannels' }) ?? []
 
   return (
     <Form {...form}>
@@ -598,6 +604,93 @@ export function JobForm({
                 </FormItem>
               )}
             />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-h3 font-semibold">Divulgação e Notificações</h2>
+            <p className="text-muted-foreground text-caption">
+              Escolha os canais para envio automático de notificação ao cadastrar a vaga.
+            </p>
+          </div>
+
+          <div className="border-border flex flex-col gap-4 rounded-lg border p-4">
+            <div className="flex flex-col gap-3">
+              <span className="text-caption font-medium">Canais de disparo</span>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {AVAILABLE_CHANNELS.map((canal) => {
+                  const id = `broadcast-channel-${canal.id}`
+                  const marcado = canaisSelecionados.includes(canal.id)
+
+                  return (
+                    <div
+                      key={canal.id}
+                      className={cn(
+                        'flex items-start gap-3 rounded-md border p-3 transition-colors',
+                        marcado
+                          ? 'border-primary/50 bg-primary/5'
+                          : 'border-border bg-background',
+                      )}
+                    >
+                      <Checkbox
+                        id={id}
+                        checked={marcado}
+                        onCheckedChange={(checked) => {
+                          const novos = checked
+                            ? [...canaisSelecionados, canal.id]
+                            : canaisSelecionados.filter((item) => item !== canal.id)
+                          form.setValue('broadcastChannels', novos)
+                        }}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <Label
+                          htmlFor={id}
+                          className="text-caption cursor-pointer font-medium"
+                        >
+                          {canal.name}
+                        </Label>
+                        <p className="text-muted-foreground text-xs">
+                          {canal.description}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {canaisSelecionados.includes('whatsapp') ? (
+              <div className="border-border flex flex-col gap-2 border-t pt-3">
+                <FormField
+                  control={form.control}
+                  name="broadcastEnvironment"
+                  render={({ field }) => (
+                    <FormItem className="max-w-xs">
+                      <FormLabel>Ambiente de destino (WhatsApp)</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value ?? 'test'}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="test">Grupo de Teste</SelectItem>
+                          <SelectItem value="prod">Grupo Oficial (Produção)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Alterna entre WHATSAPP_GROUP_ID_TEST e WHATSAPP_GROUP_ID_PROD.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : null}
           </div>
         </section>
 

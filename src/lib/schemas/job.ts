@@ -94,6 +94,9 @@ export const vagaSchema = z
 
     technologyIds: z.array(z.uuid()).default([]),
     tagIds: z.array(z.uuid()).default([]),
+
+    broadcastChannels: z.array(z.string()).default(['whatsapp']),
+    broadcastEnvironment: z.enum(['test', 'prod']).default('test'),
   })
   .refine(
     (vaga) =>
