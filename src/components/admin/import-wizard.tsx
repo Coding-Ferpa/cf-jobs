@@ -11,6 +11,7 @@ import { ActionFeedback } from '@/components/admin/action-feedback'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/cn'
 import { MAX_DURATION_DA_IMPORTACAO } from '@/lib/import-runtime'
 
@@ -71,6 +72,8 @@ type Estado =
 export function ImportWizard() {
   const router = useRouter()
   const [url, setUrl] = useState('')
+  const [conteudoBruto, setConteudoBruto] = useState('')
+  const [modo, setModo] = useState<'url' | 'manual'>('url')
   const [estado, setEstado] = useState<Estado>({ fase: 'formulario' })
   const [resultado, setResultado] = useState<ActionResult<unknown> | null>(null)
   // Bloqueio suave do orçamento (doc 05): o servidor recusa uma vez e explica;
@@ -147,7 +150,13 @@ export function ImportWizard() {
     evento.preventDefault()
     setResultado(null)
 
-    const aberta = await iniciarImportacao({ url, confirmarOrcamento })
+    const aberta = await iniciarImportacao({
+      url,
+      ...(modo === 'manual' && conteudoBruto.trim().length > 0
+        ? { conteudoBruto: conteudoBruto.trim() }
+        : {}),
+      confirmarOrcamento,
+    })
     if (!aberta.ok) {
       setResultado(aberta)
       if (aberta.error.code === 'budget_exceeded') setConfirmarOrcamento(true)
@@ -200,8 +209,16 @@ export function ImportWizard() {
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => {
+              setModo('manual')
+              setEstado({ fase: 'formulario' })
+            }}
+          >
+            Colar conteúdo da vaga
+          </Button>
           {estado.importId ? (
-            <Button onClick={() => void tentarDeNovo(estado.importId!)}>
+            <Button onClick={() => void tentarDeNovo(estado.importId!)} variant="outline">
               Tentar novamente
             </Button>
           ) : null}
@@ -223,27 +240,75 @@ export function ImportWizard() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={importar}>
+      <div
+        aria-label="Modo de importação"
+        className="flex items-center gap-2 border-b pb-2"
+        role="tablist"
+      >
+        <Button
+          aria-selected={modo === 'url'}
+          className={cn(modo === 'url' ? 'font-semibold' : 'text-muted-foreground')}
+          onClick={() => setModo('url')}
+          role="tab"
+          size="sm"
+          type="button"
+          variant={modo === 'url' ? 'secondary' : 'ghost'}
+        >
+          Por link
+        </Button>
+        <Button
+          aria-selected={modo === 'manual'}
+          className={cn(modo === 'manual' ? 'font-semibold' : 'text-muted-foreground')}
+          onClick={() => setModo('manual')}
+          role="tab"
+          size="sm"
+          type="button"
+          variant={modo === 'manual' ? 'secondary' : 'ghost'}
+        >
+          Colar texto ou HTML
+        </Button>
+      </div>
+
       <div className="flex flex-col gap-2">
-        <Label htmlFor="url-da-vaga">Endereço da vaga</Label>
+        <Label htmlFor="url-da-vaga">Endereço oficial da vaga</Label>
         <Input
           autoComplete="off"
           id="url-da-vaga"
           inputMode="url"
           name="url"
           onChange={(evento) => setUrl(evento.target.value)}
-          placeholder="https://boards.greenhouse.io/empresa/jobs/123"
+          placeholder="https://techcorp.inhire.app/vagas/123"
           required
           value={url}
         />
         <p className="text-muted-foreground text-caption">
-          Cole o link oficial do anúncio. Greenhouse, Lever, Ashby e Gupy são lidos pela
-          API pública deles; os demais sites passam pela extração genérica.
+          Cole o link oficial do anúncio. Greenhouse, Lever, Ashby, Gupy e InHire são
+          lidos diretamente; os demais sites passam pela extração genérica.
         </p>
       </div>
 
+      {modo === 'manual' ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="conteudo-bruto">Conteúdo da vaga (Texto ou HTML)</Label>
+          <Textarea
+            className="min-h-40 font-mono text-xs"
+            id="conteudo-bruto"
+            name="conteudoBruto"
+            onChange={(evento) => setConteudoBruto(evento.target.value)}
+            placeholder="Cole aqui o texto copiado ou o código HTML da página da vaga..."
+            required
+            value={conteudoBruto}
+          />
+          <p className="text-muted-foreground text-caption">
+            A IA processará o texto ou código HTML colado para extrair automaticamente
+            título, descrição, requisitos, benefícios e taxonomias.
+          </p>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit">
-          {confirmarOrcamento ? 'Importar mesmo assim' : 'Importar'}
+          {confirmarOrcamento ? 'Importar mesmo assim' : 'Importar com IA'}
         </Button>
         <Button asChild variant="ghost">
           <Link href="/admin/vagas/nova">Prefiro cadastrar à mão</Link>

@@ -1,6 +1,7 @@
 import { ashby } from './ashby'
 import { greenhouse } from './greenhouse'
 import { gupy } from './gupy'
+import { inhire } from './inhire'
 import { lever } from './lever'
 import type { Adapter } from './types'
 
@@ -12,11 +13,11 @@ import type { Adapter } from './types'
  * para o site de carreiras próprio de uma empresa, o caso mais comum fora dos
  * ATSs grandes.
  */
-export const ADAPTERS: Adapter[] = [greenhouse, lever, ashby, gupy]
+export const ADAPTERS: Adapter[] = [greenhouse, lever, ashby, gupy, inhire]
 
 export function acharAdapter(url: URL): Adapter | null {
   return ADAPTERS.find((adapter) => adapter.detecta(url)) ?? null
 }
 
-export { ashby, greenhouse, gupy, lever }
+export { ashby, greenhouse, gupy, inhire, lever }
 export { FalhaDoAdapter, type Adapter } from './types'

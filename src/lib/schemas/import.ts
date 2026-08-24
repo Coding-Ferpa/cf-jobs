@@ -19,6 +19,11 @@ export const urlDeVagaSchema = z
 export const iniciarImportacaoSchema = z.object({
   url: urlDeVagaSchema,
   /**
+   * Conteúdo manual (texto ou HTML) colado pelo admin.
+   * Usado como fallback quando a página da vaga for 100% JS (SPA) ou exigir autenticação.
+   */
+  conteudoBruto: z.string().min(50).max(100_000).optional(),
+  /**
    * Confirmação do bloqueio suave (doc 05): com `AI_MONTHLY_TOKEN_BUDGET`
    * estourado, importar exige um "sim" explícito em vez de ser proibido — o
    * teto é um alerta de custo, não uma regra de negócio.

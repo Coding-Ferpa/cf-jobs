@@ -28,14 +28,15 @@ Detecção do adapter por padrão de host/URL. **Insight central: os principais 
 | `lever` | `jobs.lever.co/{org}/{id}` | API pública `api.lever.co/v0/postings/{org}/{id}` → JSON estruturado |
 | `ashby` | `jobs.ashbyhq.com/{org}/{id}` | Posting API pública (`api.ashbyhq.com/posting-api/job-board/{org}`) filtrando pelo id |
 | `gupy` | `{org}.gupy.io/jobs/{id}` ou `{org}.gupy.io/job/...` | JSON embutido (`__NEXT_DATA__`) na página pública; fallback HTML genérico |
+| `inhire` | `{org}.inhire.app/vagas/{id}`, `app.inhire.app` | JSON embutido (`__NEXT_DATA__` ou scripts de estado) na página pública; fallback HTML genérico ([ADR-0020](adr/0020-adapter-inhire-e-fallback-manual-para-paginas-js.md)) |
 | `workday` | `*.myworkdayjobs.com` | Endpoint JSON interno da própria página (`.../wday/cxs/...` correspondente à URL); fallback genérico |
 | `linkedin` | `linkedin.com/jobs/view/{id}` | **Somente** JSON-LD `JobPosting` da página pública quando acessível sem login; caso bloqueado, orientar o admin a usar o link do ATS de origem (mensagem específica na UI). Nunca burlar login/anti-bot — respeito a ToS |
 | `generic` | qualquer outra | Pipeline em cascata (abaixo) |
 
 **Adapter genérico (cascata, para na primeira que funcionar):**
-1. **JSON-LD `JobPosting`** (`<script type="application/ld+json">`): Greenhouse, Ashby, Gupy e a maioria dos boards embutem — é a fonte mais confiável; campos estruturados já saem daqui e o texto vai para a IA apenas para complementar.
+1. **JSON-LD `JobPosting`** (`<script type="application/ld+json">`): Greenhouse, Ashby, Gupy, InHire e a maioria dos boards embutem — é a fonte mais confiável; campos estruturados já saem daqui e o texto vai para a IA apenas para complementar.
 2. **Extração de conteúdo principal** com Mozilla Readability sobre o HTML (JSDOM/linkedom) → conversão a Markdown (Turndown) → normalização de espaços.
-3. Se o HTML vier "vazio" (SPA client-side rendered, heurística: `<body>` com < 500 chars de texto): marcar `failed` no passo `fetching` com mensagem clara ("Página exige JavaScript; use o link direto do sistema de vagas da empresa"). **Decisão: sem headless browser no MVP** — Playwright em serverless é caro, lento e frágil; os adapters de ATS cobrem a imensa maioria dos casos reais. Reavaliar na Fase 2 com um serviço de render externo opcional (configurável por env).
+3. Se o HTML vier "vazio" (SPA client-side rendered, heurística: `<body>` com < 500 chars de texto): marcar `failed` no passo `extracting` com mensagem clara ("Página exige JavaScript; use o link direto do sistema de vagas da empresa ou cole o conteúdo"). **Decisão: sem headless browser no MVP** ([ADR-0020](adr/0020-adapter-inhire-e-fallback-manual-para-paginas-js.md)) — Playwright em serverless é caro, lento e frágil. Como alternativa universal, o admin dispõe da opção **"Colar texto ou HTML"** (`conteudoBruto`), que pula o fetch de rede e avança diretamente para a classificação com IA.
 
 Regras de fetch: timeout 15s, `User-Agent` identificado (`CFJobsBot/1.0 (+https://vagas.codingferpa.org/bot)`), respeitar `robots.txt` para o adapter genérico, 1 requisição por importação (sem crawling). Conteúdo final truncado em **20.000 caracteres** de Markdown (mantém início + seção de requisitos se detectável) antes da IA.
 

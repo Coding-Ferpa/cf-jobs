@@ -234,6 +234,53 @@ describe('executarPipeline — caminho feliz', () => {
     if (resultado.estado !== 'review') return
     expect(resultado.avisos).toContain('A faixa salarial veio invertida e foi corrigida.')
   })
+
+  it('processa conteudoBruto manual sem fazer fetch de rede', async () => {
+    const buscar = vi.fn(async () => respostaDeFetch())
+    const repositorio = repositorioFalso()
+
+    const resultado = await executarPipeline(
+      {
+        ...ENTRADA,
+        conteudoBruto:
+          '# Engenheiro de Software Pleno\n\nBuscamos dev para atuar com Go e PostgreSQL.\n\n## Requisitos\n- Go\n- PostgreSQL',
+      },
+      portasDe({ buscar, repositorio }),
+    )
+
+    expect(buscar).not.toHaveBeenCalled()
+    expect(resultado.estado).toBe('review')
+
+    expect(vi.mocked(repositorio.marcarEtapa).mock.calls.map((c) => c[1])).toEqual([
+      'extracting',
+      'classifying',
+      'mapping',
+    ])
+
+    const persistido = vi.mocked(repositorio.persistir).mock.calls[0]?.[0]
+    expect(persistido?.sourceSite).toBe('manual')
+
+    const guardado = vi.mocked(repositorio.guardarConteudo).mock.calls[0]?.[1]
+    const conteudoGuardado = JSON.parse(guardado?.rawContent ?? '{}')
+    expect(conteudoGuardado.truncado).toBe(false)
+  })
+
+  it('marca truncado true quando o markdown ultrapassa o limite no conteudo manual', async () => {
+    const buscar = vi.fn(async () => respostaDeFetch())
+    const repositorio = repositorioFalso()
+
+    await executarPipeline(
+      {
+        ...ENTRADA,
+        conteudoBruto: `<h1>Vaga</h1><p>${'Texto muito longo para a vaga. '.repeat(1000)}</p>`,
+      },
+      portasDe({ buscar, repositorio }),
+    )
+
+    const guardado = vi.mocked(repositorio.guardarConteudo).mock.calls[0]?.[1]
+    const conteudoGuardado = JSON.parse(guardado?.rawContent ?? '{}')
+    expect(conteudoGuardado.truncado).toBe(true)
+  })
 })
 
 describe('executarPipeline — dedup e cache', () => {

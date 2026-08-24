@@ -30,7 +30,7 @@ Os documentos são numerados na ordem recomendada de leitura. Cada um é autocon
 
 - **Stack:** Next.js 15 (App Router, RSC) + TypeScript estrito + Tailwind CSS v4 + shadcn/ui + Drizzle ORM + Supabase (Postgres, Auth) + Zod. Deploy na Vercel.
 - **IA:** NVIDIA NIM (API OpenAI-compatível em `integrate.api.nvidia.com`), cascata `z-ai/glm-5.2` → `minimaxai/minimax-m3` → `meta/llama-3.3-70b-instruct`, saída estruturada com `response_format: json_schema` + validação Zod.
-- **Importação:** pipeline com adapters por ATS (Greenhouse, Lever, Ashby, Gupy têm APIs públicas JSON — sem scraping) e fallback genérico JSON-LD → Readability → Markdown.
+- **Importação:** pipeline com adapters por ATS (Greenhouse, Lever, Ashby, Gupy, InHire) e fallback genérico JSON-LD → Readability → Markdown, além de suporte a importação manual por texto/HTML.
 - **Vagas:** ativas por 30 dias, arquivadas automaticamente via `pg_cron` no Supabase.
 - **Taxonomias:** tabelas de lookup pré-populadas; termos desconhecidos entram em fila de revisão humana (`taxonomy_suggestions`).
 - **Segurança:** RLS em todas as tabelas, papéis (admin/editor/moderator/reader) via custom claims no JWT, proteção SSRF na importação, rate limit.

@@ -181,13 +181,17 @@ export async function iniciarImportacao(
       actorId: sessao.usuario.id,
       action: 'import.start',
       entityId: criada.id,
-      diff: { url: validada.data.url },
+      diff: {
+        url: validada.data.url,
+        ...(validada.data.conteudoBruto ? { manual: true } : {}),
+      },
     })
 
     despachar({
       importId: criada.id,
       url: validada.data.url,
       criadoPor: sessao.usuario.id,
+      conteudoBruto: validada.data.conteudoBruto,
     })
 
     return actionOk({ estado: 'processando' as const, importId: criada.id })
@@ -207,7 +211,12 @@ export async function iniciarImportacao(
  * progresso lê. Um erro aqui que não chegasse ao banco deixaria a tela girando
  * para sempre; por isso o `catch` grava antes de logar.
  */
-function despachar(entrada: { importId: string; url: string; criadoPor: string }): void {
+function despachar(entrada: {
+  importId: string
+  url: string
+  criadoPor: string
+  conteudoBruto?: string
+}): void {
   after(async () => {
     const repositorio = repositorioDoPipeline()
 

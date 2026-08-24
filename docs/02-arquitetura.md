@@ -28,7 +28,7 @@ flowchart TB
 
     subgraph Externos
         NIM[NVIDIA NIM API]
-        ATS[Portais de vagas: Greenhouse, Lever, Ashby, Gupy, sites]
+        ATS[Portais de vagas: Greenhouse, Lever, Ashby, Gupy, InHire, sites]
     end
 
     PUB --> DB
@@ -137,7 +137,7 @@ cfjobs/
 │   │   └── client.ts
 │   ├── features/
 │   │   └── import/             # pipeline de importação
-│   │       ├── adapters/       # greenhouse.ts, lever.ts, ashby.ts, gupy.ts, generic.ts
+│   │       ├── adapters/       # greenhouse.ts, lever.ts, ashby.ts, gupy.ts, inhire.ts
 │   │       ├── extract.ts      # JSON-LD, readability, markdown
 │   │       ├── classify.ts     # chamada NIM + validação
 │   │       ├── map-taxonomies.ts

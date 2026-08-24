@@ -3,7 +3,15 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { acharAdapter, ashby, FalhaDoAdapter, greenhouse, gupy, lever } from './index'
+import {
+  acharAdapter,
+  ashby,
+  FalhaDoAdapter,
+  greenhouse,
+  gupy,
+  inhire,
+  lever,
+} from './index'
 
 /**
  * Cada adapter contra pelo menos duas fixtures (doc 12), sendo uma delas um
@@ -28,6 +36,8 @@ describe('detecção de adapter', () => {
     ['https://jobs.ashbyhq.com/tucanotech/1f0a77c2', 'ashby'],
     ['https://maredigital.gupy.io/jobs/8811223', 'gupy'],
     ['https://maredigital.gupy.io/job/8811223', 'gupy'],
+    ['https://techcorp.inhire.app/vagas/e3689659/engenheira-de-dados', 'inhire'],
+    ['https://app.inhire.app/vacancies/e3689659', 'inhire'],
     // Sem adapter: caem na cascata genérica.
     ['https://carreiras.empresa.exemplo.test/vagas/backend', null],
     ['https://boards.greenhouse.io/auroratech', null],
@@ -215,6 +225,71 @@ describe('gupy', () => {
     } catch (erro) {
       expect(erro).toBeInstanceOf(FalhaDoAdapter)
       expect((erro as FalhaDoAdapter).message).toContain('dados embutidos')
+    }
+  })
+})
+
+describe('inhire', () => {
+  const endereco = url('https://techcorp.inhire.app/vagas/e3689659/engenheira-de-dados')
+
+  it('busca a própria página para ler os dados embutidos', () => {
+    expect(inhire.urlDeBusca(endereco)).toBe(
+      'https://techcorp.inhire.app/vagas/e3689659/engenheira-de-dados',
+    )
+  })
+
+  it('lê a vaga do __NEXT_DATA__ e monta as seções', () => {
+    const conteudo = inhire.interpretar(fixture('inhire-vaga.html'), endereco)
+
+    expect(conteudo.origem).toBe('inhire')
+    expect(conteudo.markdown).toContain('# Engenheira de Dados Sênior')
+    expect(conteudo.markdown).toContain('## Responsabilidades')
+    expect(conteudo.markdown).toContain('## Requisitos')
+    expect(conteudo.markdown).toContain('## Desejáveis e Diferenciais')
+    expect(conteudo.markdown).toContain('## Benefícios')
+    expect(conteudo.markdown).toContain('Construir pipelines em Python e PySpark')
+    expect(conteudo.markdown).toContain('Airflow e Apache Spark')
+  })
+
+  it('lê local, modalidade, salário e empresa dos campos estruturados', () => {
+    const conteudo = inhire.interpretar(fixture('inhire-vaga.html'), endereco)
+
+    expect(conteudo.estruturado).toMatchObject({
+      title: 'Engenheira de Dados Sênior',
+      companyName: 'TechCorp',
+      remote: true,
+      employmentType: 'CLT',
+      datePosted: '2026-07-20',
+      location: { city: 'São Paulo', state: 'SP', country: 'BR' },
+      salary: { min: 14000, max: 18000, currency: 'BRL', period: 'month' },
+    })
+  })
+
+  it('interpreta JSON direto quando a resposta for JSON em vez de HTML', () => {
+    const jsonDireto = JSON.stringify({
+      title: 'Tech Lead Backend',
+      company: 'Inovação SA',
+      description: 'Liderar time de backend',
+      workplaceType: 'hybrid',
+      city: 'Florianópolis',
+      state: 'SC',
+      country: 'BR',
+      requirements: ['Node.js', 'PostgreSQL'],
+    })
+
+    const conteudo = inhire.interpretar(jsonDireto, endereco)
+    expect(conteudo.markdown).toContain('# Tech Lead Backend')
+    expect(conteudo.markdown).toContain('Node.js')
+    expect(conteudo.estruturado?.companyName).toBe('Inovação SA')
+  })
+
+  it('falha explicando quando o HTML não contém dados da vaga', () => {
+    try {
+      inhire.interpretar('<html><body><div id="root"></div></body></html>', endereco)
+      expect.unreachable('deveria ter falhado')
+    } catch (erro) {
+      expect(erro).toBeInstanceOf(FalhaDoAdapter)
+      expect((erro as FalhaDoAdapter).message).toContain('sem os dados')
     }
   })
 })

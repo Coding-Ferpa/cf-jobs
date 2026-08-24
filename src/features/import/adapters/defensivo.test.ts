@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { extrairJobPosting } from '../extract'
 import { documentoDe, extrairPrincipal } from '../extract/markdown'
 
-import { ashby, FalhaDoAdapter, greenhouse, gupy, lever } from './index'
+import { ashby, FalhaDoAdapter, greenhouse, gupy, inhire, lever } from './index'
 
 /**
  * Os caminhos defensivos dos adapters e do JSON-LD.
@@ -204,6 +204,120 @@ describe('adapters diante de resposta torta', () => {
         new URL('https://org.gupy.io/jobs/1'),
       ),
     ).toThrow(FalhaDoAdapter)
+  })
+})
+
+describe('inhire defensivo', () => {
+  it('inhire com JSON quebrado no script falha explicando', () => {
+    expect(() =>
+      inhire.interpretar(
+        '<script id="__NEXT_DATA__" type="application/json">{quebrado</script>',
+        new URL('https://empresa.inhire.app/vagas/1'),
+      ),
+    ).toThrow(FalhaDoAdapter)
+  })
+
+  it('inhire com dados sem a vaga falha explicando', () => {
+    expect(() =>
+      inhire.interpretar(
+        '<script id="__NEXT_DATA__" type="application/json">{"props":{}}</script>',
+        new URL('https://empresa.inhire.app/vagas/1'),
+      ),
+    ).toThrow(FalhaDoAdapter)
+  })
+
+  it('inhire monta seções com arrays em vez de HTML', () => {
+    const conteudo = inhire.interpretar(
+      `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            vacancy: {
+              title: 'Dev Frontend',
+              description: 'Construir interfaces',
+              requirements: ['React', 'TypeScript', 'Tailwind'],
+              workplaceType: 'remoto',
+            },
+          },
+        },
+      })}</script>`,
+      new URL('https://empresa.inhire.app/vagas/1'),
+    )
+
+    expect(conteudo.markdown).toContain('## Descrição')
+    expect(conteudo.markdown).toContain('## Requisitos')
+    expect(conteudo.markdown).toContain('React')
+    expect(conteudo.estruturado?.remote).toBe(true)
+  })
+
+  it('inhire com vaga vazia falha explicando', () => {
+    expect(() =>
+      inhire.interpretar(
+        `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+          props: { pageProps: { vacancy: {} } },
+        })}</script>`,
+        new URL('https://empresa.inhire.app/vagas/1'),
+      ),
+    ).toThrow(FalhaDoAdapter)
+  })
+
+  it('inhire aceita salário como número escalar ou em texto', () => {
+    const conteudo = inhire.interpretar(
+      `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            vacancy: {
+              title: 'Engenheiro de Dados',
+              description: 'Pipelines ETL',
+              salary: 15000,
+            },
+          },
+        },
+      })}</script>`,
+      new URL('https://empresa.inhire.app/vagas/1'),
+    )
+
+    expect(conteudo.estruturado?.salary).toEqual({
+      min: 15000,
+      max: 15000,
+      currency: 'BRL',
+      period: 'month',
+    })
+  })
+
+  it('inhire interpreta timestamp numérico e ignora data inválida', () => {
+    const conteudo = inhire.interpretar(
+      `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            vacancy: {
+              title: 'Engenheiro de Dados',
+              description: 'Pipelines ETL',
+              publishedAt: 1721472000000, // 2024-07-20
+            },
+          },
+        },
+      })}</script>`,
+      new URL('https://empresa.inhire.app/vagas/1'),
+    )
+
+    expect(conteudo.estruturado?.datePosted).toBe('2024-07-20')
+
+    const conteudoInvalido = inhire.interpretar(
+      `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: {
+          pageProps: {
+            vacancy: {
+              title: 'Engenheiro de Dados',
+              description: 'Pipelines ETL',
+              publishedAt: 'data-invalida',
+            },
+          },
+        },
+      })}</script>`,
+      new URL('https://empresa.inhire.app/vagas/1'),
+    )
+
+    expect(conteudoInvalido.estruturado?.datePosted).toBeNull()
   })
 })
 

@@ -4,7 +4,14 @@ import { canonicalizarUrl, hashDaUrl } from '@/lib/source-url'
 
 import { acharAdapter, FalhaDoAdapter } from './adapters'
 import { classificar, FalhaDaClassificacao } from './classify'
-import { extrairConteudo, FalhaDeExtracao, type ConteudoExtraido } from './extract'
+import {
+  extrairConteudo,
+  FalhaDeExtracao,
+  LIMITE_DE_CARACTERES,
+  truncar,
+  type ConteudoExtraido,
+} from './extract'
+import { htmlParaMarkdown } from './extract/markdown'
 import { mapearTaxonomias, type Catalogo } from './map-taxonomies'
 import { FalhaDaIa, type ClienteNim } from './nim'
 import type { ListasDeOpcoes } from './prompt'
@@ -121,6 +128,7 @@ export type EntradaDoPipeline = {
   importId: string
   url: string
   criadoPor: string
+  conteudoBruto?: string
 }
 
 export type ResultadoDoPipeline =
@@ -214,36 +222,48 @@ export async function executarPipeline(
     }
 
     // ---- Etapa 2: aquisição de conteúdo ---------------------------------
-    await repositorio.marcarEtapa(entrada.importId, 'fetching')
-
-    const adapter = acharAdapter(new URL(urlCanonica))
-    const cache = await repositorio.conteudoEmCache(urlHash)
-
     let conteudo: ConteudoExtraido
     let sourceSite: string
 
-    if (cache) {
-      // Retomada: o conteúdo de até 24h atrás serve, e não se bate no board
-      // de novo por nada (doc 05).
-      conteudo = lerConteudoGuardado(cache.rawContent)
-      sourceSite = cache.sourceSite ?? conteudo.origem
-    } else {
-      const alvo = adapter ? adapter.urlDeBusca(new URL(urlCanonica)) : urlCanonica
-      const resposta = await buscarComRetentativas(alvo, {
-        buscar,
-        dormir,
-        aleatorio,
-        restante,
-      })
-
+    if (entrada.conteudoBruto) {
+      // Conteúdo manual fornecido pelo admin (fallback para páginas 100% JS / SPAs)
       await repositorio.marcarEtapa(entrada.importId, 'extracting')
-      conteudo = interpretar(resposta, adapter, urlCanonica)
-      sourceSite = adapter?.nome ?? conteudo.origem
+      conteudo = interpretarConteudoManual(entrada.conteudoBruto, urlCanonica)
+      sourceSite = 'manual'
 
       await repositorio.guardarConteudo(entrada.importId, {
         rawContent: JSON.stringify(conteudo),
         sourceSite,
       })
+    } else {
+      await repositorio.marcarEtapa(entrada.importId, 'fetching')
+
+      const adapter = acharAdapter(new URL(urlCanonica))
+      const cache = await repositorio.conteudoEmCache(urlHash)
+
+      if (cache) {
+        // Retomada: o conteúdo de até 24h atrás serve, e não se bate no board
+        // de novo por nada (doc 05).
+        conteudo = lerConteudoGuardado(cache.rawContent)
+        sourceSite = cache.sourceSite ?? conteudo.origem
+      } else {
+        const alvo = adapter ? adapter.urlDeBusca(new URL(urlCanonica)) : urlCanonica
+        const resposta = await buscarComRetentativas(alvo, {
+          buscar,
+          dormir,
+          aleatorio,
+          restante,
+        })
+
+        await repositorio.marcarEtapa(entrada.importId, 'extracting')
+        conteudo = interpretar(resposta, adapter, urlCanonica)
+        sourceSite = adapter?.nome ?? conteudo.origem
+
+        await repositorio.guardarConteudo(entrada.importId, {
+          rawContent: JSON.stringify(conteudo),
+          sourceSite,
+        })
+      }
     }
 
     // ---- Etapa 3: classificação -----------------------------------------
@@ -325,6 +345,30 @@ function lerConteudoGuardado(bruto: string): ConteudoExtraido {
   }
 
   return { markdown: bruto, estruturado: null, origem: 'readability', truncado: false }
+}
+
+function interpretarConteudoManual(bruto: string, urlCanonica: string): ConteudoExtraido {
+  const eHtml = /<[a-z][\s\S]*>/i.test(bruto)
+  if (eHtml) {
+    try {
+      const extraido = extrairConteudo(bruto, urlCanonica)
+      return {
+        ...extraido,
+        origem: 'manual',
+      }
+    } catch {
+      // Se não passou pelo Readability ou acusou SPA, fazemos a conversão direta do HTML
+    }
+  }
+
+  const markdownCru = eHtml ? htmlParaMarkdown(bruto) : bruto
+  const markdown = truncar(markdownCru)
+  return {
+    markdown,
+    estruturado: null,
+    origem: 'manual',
+    truncado: markdownCru.length > LIMITE_DE_CARACTERES,
+  }
 }
 
 function interpretar(

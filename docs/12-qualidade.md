@@ -14,7 +14,7 @@ Regra de ouro: **testar onde há lógica, não onde há framework.** CRUD trivia
 
 | Alvo | Estratégia |
 |---|---|
-| **Adapters de extração** (`features/import/adapters`) | **fixtures de HTML/JSON reais** (páginas salvas de Greenhouse, Lever, Ashby, Gupy, genéricas — anonimizadas) em `src/features/import/__fixtures__/`; cada adapter testado contra 2+ fixtures; adicionar fixture é o caminho padrão para corrigir bug de parsing (red → green) |
+| **Adapters de extração** (`features/import/adapters`) | **fixtures de HTML/JSON reais** (páginas salvas de Greenhouse, Lever, Ashby, Gupy, InHire, genéricas — anonimizadas) em `src/features/import/__fixtures__/`; cada adapter testado contra 2+ fixtures; adicionar fixture é o caminho padrão para corrigir bug de parsing (red → green) |
 | Extração JSON-LD / Readability / truncamento | fixtures com edge cases (multi JSON-LD, LD malformado, página SPA vazia) |
 | `classify` (chamada IA) | **mock da API NIM**; testa: retry de reparo com resposta inválida, fallback de modelo em 429, timeout, validação Zod, rejeição por baixa confiança |
 | `map-taxonomies` | matching exato/alias/trigram (trigram testado na integração), geração de sugestões, não-duplicação |

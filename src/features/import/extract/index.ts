@@ -35,7 +35,14 @@ export class FalhaDeExtracao extends Error {
 
 /** Vai para `job_imports.source_site` e para o painel de observabilidade. */
 export type OrigemDoConteudo =
-  'json-ld' | 'readability' | 'greenhouse' | 'lever' | 'ashby' | 'gupy'
+  | 'json-ld'
+  | 'readability'
+  | 'greenhouse'
+  | 'lever'
+  | 'ashby'
+  | 'gupy'
+  | 'inhire'
+  | 'manual'
 
 export type ConteudoExtraido = {
   markdown: string
