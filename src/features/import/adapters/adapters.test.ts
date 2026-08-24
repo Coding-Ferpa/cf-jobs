@@ -232,10 +232,13 @@ describe('gupy', () => {
 describe('inhire', () => {
   const endereco = url('https://techcorp.inhire.app/vagas/e3689659/engenheira-de-dados')
 
-  it('busca a própria página para ler os dados embutidos', () => {
-    expect(inhire.urlDeBusca(endereco)).toBe(
-      'https://techcorp.inhire.app/vagas/e3689659/engenheira-de-dados',
-    )
+  it('busca a API pública com o header x-tenant da empresa', () => {
+    expect(inhire.urlDeBusca(endereco)).toEqual({
+      url: 'https://api.inhire.app/job-posts/public/pages/e3689659',
+      headers: {
+        'x-tenant': 'techcorp',
+      },
+    })
   })
 
   it('lê a vaga do __NEXT_DATA__ e monta as seções', () => {
@@ -262,6 +265,30 @@ describe('inhire', () => {
       datePosted: '2026-07-20',
       location: { city: 'São Paulo', state: 'SP', country: 'BR' },
       salary: { min: 14000, max: 18000, currency: 'BRL', period: 'month' },
+    })
+  })
+
+  it('interpreta payload JSON da API oficial do InHire (displayName, tenantName, local string)', () => {
+    const jsonApi = JSON.stringify({
+      displayName: 'Analista Salesforce Marketing Cloud (Pleno)',
+      tenantName: 'Global System',
+      description: '<h1>Descrição</h1><p>Requisitos de Salesforce</p>',
+      workplaceType: 'Hybrid',
+      location: 'Campinas, SP, BR',
+      contractType: ['PJ'],
+      publishedAt: '2026-08-21T20:06:00.609Z',
+    })
+
+    const conteudo = inhire.interpretar(jsonApi, endereco)
+    expect(conteudo.markdown).toContain('# Analista Salesforce Marketing Cloud (Pleno)')
+    expect(conteudo.markdown).toContain('Requisitos de Salesforce')
+    expect(conteudo.estruturado).toMatchObject({
+      title: 'Analista Salesforce Marketing Cloud (Pleno)',
+      companyName: 'Global System',
+      remote: false,
+      employmentType: 'PJ',
+      datePosted: '2026-08-21',
+      location: { city: 'Campinas', state: 'SP', country: 'BR' },
     })
   })
 

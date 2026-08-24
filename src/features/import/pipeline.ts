@@ -117,7 +117,10 @@ export type Portas = {
   /** Recebe o orçamento restante para decidir se cabe um segundo ciclo (doc 05). */
   criarCliente: (orcamentoRestanteMs: () => number) => ClienteNim
   listas: ListasDeOpcoes
-  buscar?: (url: string) => Promise<ResultadoDeFetch>
+  buscar?: (
+    url: string,
+    opcoes?: { headers?: Record<string, string> },
+  ) => Promise<ResultadoDeFetch>
   agora?: () => number
   dormir?: (ms: number) => Promise<void>
   aleatorio?: () => number
@@ -191,7 +194,10 @@ export async function executarPipeline(
   const agora = portas.agora ?? Date.now
   const dormir = portas.dormir ?? dormirDeVerdade
   const aleatorio = portas.aleatorio ?? Math.random
-  const buscar = portas.buscar ?? ((url: string) => safeFetch(url))
+  const buscar =
+    portas.buscar ??
+    ((url: string, opcoes?: { headers?: Record<string, string> }) =>
+      safeFetch(url, opcoes))
   const orcamento = portas.orcamentoMs ?? ORCAMENTO_DO_PIPELINE_MS
 
   const inicio = agora()
@@ -248,8 +254,13 @@ export async function executarPipeline(
         sourceSite = cache.sourceSite ?? conteudo.origem
       } else {
         const alvo = adapter ? adapter.urlDeBusca(new URL(urlCanonica)) : urlCanonica
-        const resposta = await buscarComRetentativas(alvo, {
-          buscar,
+        const urlDeDestino = typeof alvo === 'string' ? alvo : alvo.url
+        const headersExtras = typeof alvo === 'string' ? undefined : alvo.headers
+
+        const resposta = await buscarComRetentativas(urlDeDestino, {
+          buscar: headersExtras
+            ? (url) => buscar(url, { headers: headersExtras })
+            : (url) => buscar(url),
           dormir,
           aleatorio,
           restante,

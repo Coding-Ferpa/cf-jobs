@@ -12,6 +12,11 @@ import type { ConteudoExtraido } from '../extract'
  * vire uma correção pontual, com uma fixture nova, e não uma investigação no
  * pipeline inteiro (doc 13).
  */
+export type AlvoDeBusca = {
+  url: string
+  headers?: Record<string, string>
+}
+
 export type Adapter = {
   /** Vai para `job_imports.source_site` e para o painel de observabilidade. */
   nome: string
@@ -27,7 +32,7 @@ export type Adapter = {
    * O que buscar de fato — normalmente a API pública, não a página que a
    * pessoa colou.
    */
-  urlDeBusca(url: URL): string
+  urlDeBusca(url: URL): string | AlvoDeBusca
 
   /** Converte a resposta da API no mesmo formato que a extração genérica. */
   interpretar(corpo: string, url: URL): ConteudoExtraido

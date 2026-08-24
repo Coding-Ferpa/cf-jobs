@@ -1,32 +1,42 @@
 import { LIMITE_DE_CARACTERES, truncar, type ConteudoExtraido } from '../extract'
 import { documentoDe, htmlParaMarkdown } from '../extract/markdown'
 
-import { FalhaDoAdapter, type Adapter } from './types'
+import { FalhaDoAdapter, segmentos, type Adapter } from './types'
 
 /**
  * InHire — `{org}.inhire.app/vagas/{id}` ou `app.inhire.app/vagas/{id}` (doc 05).
  *
- * O InHire utiliza aplicação Next.js / SPA com dados da vaga embutidos em
- * `<script id="__NEXT_DATA__">` ou estruturas JSON de estado. Ler diretamente
- * os dados embutidos é mais determinístico e evita quebrar com renderização
- * puramente no cliente.
+ * A plataforma InHire opera como SPA e expõe a API pública oficial em
+ * `https://api.inhire.app/job-posts/public/pages/{id}` exigindo o header
+ * `x-tenant: {tenant}`. Como fallback, caso a requisição venha de HTML
+ * legado, os dados também são lidos de `<script id="__NEXT_DATA__">`.
  */
 
 type VagaDoInHire = {
   id?: unknown
+  jobId?: unknown
   title?: unknown
+  displayName?: unknown
   name?: unknown
   company?: unknown
   companyName?: unknown
   tenant?: unknown
   tenantName?: unknown
+  location?:
+    | {
+        city?: unknown
+        state?: unknown
+        country?: unknown
+      }
+    | string
+    | unknown
   city?: unknown
   state?: unknown
   country?: unknown
   workplaceType?: unknown
   workModel?: unknown
   modality?: unknown
-  contractType?: unknown
+  contractType?: unknown[] | unknown
   type?: unknown
   employmentType?: unknown
   publishedAt?: unknown
@@ -47,6 +57,7 @@ type VagaDoInHire = {
     | {
         min?: unknown
         max?: unknown
+        value?: unknown
         currency?: unknown
       }
     | unknown
@@ -130,10 +141,27 @@ export const inhire: Adapter = {
     const host = url.hostname.toLowerCase()
     const eInhire =
       host === 'inhire.app' || host === 'app.inhire.app' || host.endsWith('.inhire.app')
-    return eInhire && /\/(vagas?|vacanc(y|ies))\//i.test(url.pathname)
+    return eInhire && /\/(vagas?|vacanc(y|ies)|jobs?)\//i.test(url.pathname)
   },
 
   urlDeBusca(url) {
+    const host = url.hostname.toLowerCase()
+    const partes = host.split('.')
+    const tenant =
+      partes.length > 2 && partes[0] !== 'app' && partes[0] !== 'www' ? partes[0] : null
+    const segs = segmentos(url)
+    const idxVaga = segs.findIndex((s) => /^(vagas?|vacanc(y|ies)|jobs?)$/i.test(s))
+    const idDaVaga = idxVaga !== -1 ? segs[idxVaga + 1] : null
+
+    if (tenant && idDaVaga) {
+      return {
+        url: `https://api.inhire.app/job-posts/public/pages/${idDaVaga}`,
+        headers: {
+          'x-tenant': tenant,
+        },
+      }
+    }
+
     return url.toString()
   },
 
@@ -154,7 +182,7 @@ export const inhire: Adapter = {
         )
       }
     } else {
-      // Tentativa 2: Corpo já é JSON direto ou outro script de dados
+      // Tentativa 2: Corpo já é JSON direto da API ou outro script de dados
       const blocoJson = doc.querySelector('script[type="application/json"]')?.textContent
       if (blocoJson) {
         try {
@@ -178,7 +206,9 @@ export const inhire: Adapter = {
 
     const vaga = (achar(dados, 'vacancy') ??
       achar(dados, 'job') ??
-      (typeof dados === 'object' && dados !== null && 'title' in dados
+      (typeof dados === 'object' &&
+      dados !== null &&
+      ('title' in dados || 'displayName' in dados || 'description' in dados)
         ? dados
         : undefined)) as VagaDoInHire | undefined
 
@@ -186,7 +216,7 @@ export const inhire: Adapter = {
       throw new FalhaDoAdapter('inhire', 'Não achamos a vaga nos dados da página.')
     }
 
-    const titulo = texto(vaga.title) ?? texto(vaga.name)
+    const titulo = texto(vaga.title) ?? texto(vaga.displayName) ?? texto(vaga.name)
     const partes = [titulo ? `# ${titulo}` : '']
 
     for (const { chaves, rotulo } of SECOES) {
@@ -222,7 +252,33 @@ export const inhire: Adapter = {
       modalidade === 'remote' ||
       modalidade === 'home_office'
 
-    const pais = texto(vaga.country)
+    let cidade: string | null = texto(vaga.city)
+    let estado: string | null = texto(vaga.state)
+    let pais: string | null = texto(vaga.country)
+
+    if (!cidade && !estado && !pais && typeof vaga.location === 'string') {
+      const pedacos = vaga.location
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+      if (pedacos.length >= 3) {
+        cidade = pedacos[0] ?? null
+        estado = pedacos[1] ?? null
+        pais = pedacos[2] && pedacos[2].length === 2 ? pedacos[2].toUpperCase() : null
+      } else if (pedacos.length === 2) {
+        cidade = pedacos[0] ?? null
+        estado = pedacos[1] ?? null
+      } else if (pedacos.length === 1) {
+        cidade = pedacos[0] ?? null
+      }
+    } else if (typeof vaga.location === 'object' && vaga.location !== null) {
+      const locObj = vaga.location as Record<string, unknown>
+      cidade = texto(locObj.city) ?? cidade
+      estado = texto(locObj.state) ?? estado
+      const p = texto(locObj.country)
+      pais = p && p.length === 2 ? p.toUpperCase() : pais
+    }
+
     const salarioObj =
       typeof vaga.salary === 'object' && vaga.salary !== null
         ? (vaga.salary as Record<string, unknown>)
@@ -234,10 +290,14 @@ export const inhire: Adapter = {
     const moeda = texto(salarioObj?.currency)
 
     const empresa =
+      texto(vaga.tenantName) ??
       texto(vaga.company) ??
       texto(vaga.companyName) ??
-      texto(vaga.tenant) ??
-      texto(vaga.tenantName)
+      texto(vaga.tenant)
+
+    const tipoContrato = Array.isArray(vaga.contractType)
+      ? texto(vaga.contractType[0])
+      : (texto(vaga.contractType) ?? texto(vaga.type) ?? texto(vaga.employmentType))
 
     return {
       markdown: truncar(markdown),
@@ -245,8 +305,7 @@ export const inhire: Adapter = {
         title: titulo,
         companyName: empresa,
         descriptionHtml: null,
-        employmentType:
-          texto(vaga.contractType) ?? texto(vaga.type) ?? texto(vaga.employmentType),
+        employmentType: tipoContrato,
         datePosted:
           lerData(vaga.publishedAt) ??
           lerData(vaga.publishedDate) ??
@@ -254,8 +313,8 @@ export const inhire: Adapter = {
         validThrough: null,
         remote: eRemoto,
         location: {
-          city: texto(vaga.city),
-          state: texto(vaga.state),
+          city: cidade,
+          state: estado,
           country: pais && pais.length === 2 ? pais.toUpperCase() : null,
         },
         salary:

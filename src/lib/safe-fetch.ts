@@ -244,6 +244,7 @@ export type OpcoesDeFetch = {
   timeoutMs?: number
   maxBytes?: number
   maxRedirects?: number
+  headers?: Record<string, string>
 }
 
 export type ResultadoDeFetch = {
@@ -350,7 +351,11 @@ export async function safeFetch(
     let resposta: Response
     try {
       resposta = await buscar(url.toString(), {
-        headers: { 'user-agent': USER_AGENT, accept: TIPOS_ACEITOS.join(', ') },
+        headers: {
+          'user-agent': USER_AGENT,
+          accept: TIPOS_ACEITOS.join(', '),
+          ...(opcoes.headers ?? {}),
+        },
         // Seguimos os redirects à mão: é a única forma de revalidar o destino
         // de cada salto antes de segui-lo.
         redirect: 'manual',
