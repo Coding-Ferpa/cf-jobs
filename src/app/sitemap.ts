@@ -12,7 +12,13 @@ export const revalidate = 3600
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = clientEnv().NEXT_PUBLIC_SITE_URL
-  const vagas = await listPublishedJobSlugs()
+  let vagas: { slug: string; updatedAt: string }[] = []
+
+  try {
+    vagas = await listPublishedJobSlugs()
+  } catch (error) {
+    console.error('Falha ao obter vagas para o sitemap durante o build:', error)
+  }
 
   return [
     {
