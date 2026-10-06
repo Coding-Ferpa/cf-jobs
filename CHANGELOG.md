@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0](https://github.com/Coding-Ferpa/cf-jobs/compare/v1.0.0...v1.1.0) (2026-08-24)
+
+
+### Features
+
+* **analytics:** Vercel Web Analytics na área pública ([1ed8759](https://github.com/Coding-Ferpa/cf-jobs/commit/1ed87590338ac2919066323e3e9f435e4a1383d7))
+* **analytics:** Vercel Web Analytics na área pública ([329520e](https://github.com/Coding-Ferpa/cf-jobs/commit/329520ea25191cdbe7b79163c4d1f3b5e00cec68))
+* **import:** adapter InHire e fallback manual para páginas 100% JS ([ef686e4](https://github.com/Coding-Ferpa/cf-jobs/commit/ef686e4a9035115f501a1f3580d9acd8d9b447ed))
+* **import:** busca direta da API pública InHire com header x-tenant ([05a66ea](https://github.com/Coding-Ferpa/cf-jobs/commit/05a66ea5421073b20a7017d9db6fe5d6277ffa59))
+
 ## 1.0.0 (2026-08-21)
 
 
