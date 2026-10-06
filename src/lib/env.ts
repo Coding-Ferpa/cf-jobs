@@ -132,6 +132,17 @@ export const serverEnvSchema = z
     // variáveis configura o provider local e a detecção do recurso no app.
     SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID: z.string().min(1).optional(),
     SUPABASE_AUTH_EXTERNAL_GITHUB_SECRET: z.string().min(1).optional(),
+
+    // --- WhatsApp Business Cloud API (Disparo em Grupos) ---
+    // Opcionais no boot: o app funciona normalmente sem elas. O disparo é feito
+    // apenas quando configuradas e solicitadas no formulário.
+    WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
+    WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
+    WHATSAPP_GROUP_ID_TEST: z.string().min(1).optional(),
+    WHATSAPP_GROUP_ID_PROD: z.string().min(1).optional(),
+    WHATSAPP_DEFAULT_GROUP: z.enum(['test', 'prod']).default('test'),
+    WHATSAPP_API_VERSION: z.string().min(1).default('v22.0'),
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(8).optional(),
   })
   .superRefine((env, ctx) => {
     recusarEnderecoLocal(
@@ -269,6 +280,48 @@ export function requireAnalyticsSalt(): string {
  */
 export function isGithubOAuthEnabled(): boolean {
   return Boolean(serverEnv().SUPABASE_AUTH_EXTERNAL_GITHUB_CLIENT_ID)
+}
+
+export type WhatsAppEnv = {
+  accessToken: string
+  phoneNumberId: string
+  groupIdTest: string | undefined
+  groupIdProd: string | undefined
+  defaultGroup: 'test' | 'prod'
+  apiVersion: string
+  webhookVerifyToken: string | undefined
+}
+
+export function isWhatsAppConfigured(env?: ServerEnv): boolean {
+  const currentEnv = env ?? serverEnv()
+  return Boolean(
+    currentEnv.WHATSAPP_ACCESS_TOKEN &&
+    currentEnv.WHATSAPP_PHONE_NUMBER_ID &&
+    (currentEnv.WHATSAPP_GROUP_ID_TEST || currentEnv.WHATSAPP_GROUP_ID_PROD),
+  )
+}
+
+export function resolveWhatsAppEnv(env: ServerEnv): WhatsAppEnv {
+  if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) {
+    throw new Error(
+      'Credenciais do WhatsApp (WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID) não estão configuradas.',
+    )
+  }
+
+  return {
+    accessToken: env.WHATSAPP_ACCESS_TOKEN,
+    phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+    groupIdTest: env.WHATSAPP_GROUP_ID_TEST,
+    groupIdProd: env.WHATSAPP_GROUP_ID_PROD,
+    defaultGroup: env.WHATSAPP_DEFAULT_GROUP,
+    apiVersion: env.WHATSAPP_API_VERSION,
+    webhookVerifyToken: env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+  }
+}
+
+export function _resetEnvCache(): void {
+  cachedClientEnv = undefined
+  cachedServerEnv = undefined
 }
 
 /** Variáveis de servidor, incluindo segredos. Nunca chamar em código de cliente. */

@@ -139,6 +139,7 @@ Estrutura comum: `id` uuid PK · `slug` text unique · `label` text · `aliases`
 | job_imports | `(url_hash, created_at desc)` | cache/dedup |
 | todas lookups | unique em `slug`; GIN em `aliases` | matching da IA |
 | extensão | `pg_trgm` + GIN trigram em `technologies.label`, `tags.label`, `companies.name` | fuzzy match da IA e autocomplete |
+| extensão (Fase 7) | `pgvector` + índice HNSW/IVFFlat em `embedding` (gerado via `gte-small` sobre keywords/metadados, sem description) | busca semântica híbrida e matching |
 
 ## Views e Materialized Views
 
